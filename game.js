@@ -4,14 +4,20 @@ function loadImage(src) {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject("Failed to load " + src);
-    img.src = src;
+    img.src = src + "?v=" + Date.now();
   });
 }
-Promise.all([loadImage("Defender.png"), loadImage("Attacker.JPG")]).then(images => {
-  defenderImg = images[0];
-  attackerImg = images[1];
-  newGame();
-});
+Promise.all([loadImage("Defender.png"), loadImage("Attacker.JPG")])
+  .then(images => {
+    defenderImg = images[0];
+    attackerImg = images[1];
+    newGame();
+  })
+  .catch(() => {
+    defenderImg = null;
+    attackerImg = null;
+    newGame();
+  });
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const GRID_SIZE = 10;
@@ -19,6 +25,8 @@ const CELL_SIZE = 50;
 let board = [];
 let attackers = [];
 let trainingData = [];
+let hoveredCell = null;
+let shotTile = null;
 function createEmptyBoard() {
   let arr = [];
   for (let r = 0; r < GRID_SIZE; r++) {
@@ -104,9 +112,16 @@ function drawBoard(boardArr) {
       ctx.strokeRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
       let val = boardArr[r][c];
       if (val === 1) {
-        ctx.drawImage(defenderImg, c * CELL_SIZE + 5, r * CELL_SIZE + 5, CELL_SIZE - 10, CELL_SIZE - 10);
+        if (defenderImg) ctx.drawImage(defenderImg, c * CELL_SIZE + 5, r * CELL_SIZE + 5, CELL_SIZE - 10, CELL_SIZE - 10);
       }
     }
+  }
+  if (shotTile) {
+    ctx.fillStyle = "rgba(255,0,0,0.3)";
+    ctx.fillRect(shotTile[1] * CELL_SIZE, shotTile[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+  } else if (hoveredCell) {
+    ctx.fillStyle = "rgba(0,255,0,0.3)";
+    ctx.fillRect(hoveredCell[1] * CELL_SIZE, hoveredCell[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE);
   }
 }
 function drawPaths() {
@@ -138,25 +153,59 @@ function drawPaths() {
     }
     let cr = atk.steppedPath[atk.currentIndex][0];
     let cc = atk.steppedPath[atk.currentIndex][1];
-    ctx.drawImage(attackerImg, cc * CELL_SIZE + 5, cr * CELL_SIZE + 5, CELL_SIZE - 10, CELL_SIZE - 10);
+    if (attackerImg) ctx.drawImage(attackerImg, cc * CELL_SIZE + 5, cr * CELL_SIZE + 5, CELL_SIZE - 10, CELL_SIZE - 10);
   }
 }
 function newGame() {
   board = createEmptyBoard();
   placeDefenders(board);
   placeAttackers();
+  shotTile = null;
+  hoveredCell = null;
+  for (let atk of attackers) { atk.currentIndex = 0; }
   trainingData.push(JSON.parse(JSON.stringify(board)));
   drawBoard(board);
   drawPaths();
 }
 function nextTurn() {
-  for (let atk of attackers) {
+  attackers = attackers.filter(atk => {
     if (atk.currentIndex < atk.steppedPath.length - 1) {
-      atk.currentIndex++;
+      let nextIndex = atk.currentIndex + 1;
+      let nextTile = atk.steppedPath[nextIndex];
+      if (shotTile && nextTile[0] === shotTile[0] && nextTile[1] === shotTile[1]) {
+        return false;
+      } else {
+        atk.currentIndex = nextIndex;
+        return true;
+      }
     }
-  }
+    return true;
+  });
+  shotTile = null;
   drawBoard(board);
   drawPaths();
 }
+canvas.addEventListener("mousemove", function(e) {
+  let rect = canvas.getBoundingClientRect();
+  let x = e.clientX - rect.left;
+  let y = e.clientY - rect.top;
+  let col = Math.floor(x / CELL_SIZE);
+  let row = Math.floor(y / CELL_SIZE);
+  hoveredCell = [row, col];
+  drawBoard(board);
+  drawPaths();
+});
+canvas.addEventListener("click", function() {
+  if (hoveredCell) {
+    if (board[hoveredCell[0]][hoveredCell[1]] === 1) return;
+    for (let atk of attackers) {
+      let current = atk.steppedPath[atk.currentIndex];
+      if (current[0] === hoveredCell[0] && current[1] === hoveredCell[1]) return;
+    }
+    shotTile = hoveredCell;
+    drawBoard(board);
+    drawPaths();
+  }
+});
 document.getElementById("newGameBtn").addEventListener("click", newGame);
 document.getElementById("nextTurnBtn").addEventListener("click", nextTurn);
