@@ -7,7 +7,6 @@ function loadImage(src) {
     img.src = "./" + src + "?v=" + Date.now();
   });
 }
-
 Promise.all([loadImage("Defender.png"), loadImage("Attacker.JPG")])
   .then(images => {
     defenderImg = images[0];
@@ -93,7 +92,12 @@ function placeAttackers() {
   for (let i = 0; i < 3; i++) {
     let col = usedCols[i];
     let targetOptions = [[8, 2], [7, 7]];
-    let chosenTarget = targetOptions[Math.floor(Math.random() * targetOptions.length)];
+    let baseTarget = targetOptions[Math.floor(Math.random() * targetOptions.length)];
+    let dRow = baseTarget[0] - 0;
+    let dCol = baseTarget[1] - col;
+    let signRow = dRow >= 0 ? 1 : -1;
+    let signCol = dCol >= 0 ? 1 : -1;
+    let chosenTarget = [baseTarget[0] - signRow, baseTarget[1] - signCol];
     let pathType = Math.random() < 0.5 ? "straight" : "curve";
     let speed = Math.random() < 0.5 ? 1 : 2;
     let fullPath = pathType === "straight" ? generatePathStraight(0, col, chosenTarget[0], chosenTarget[1])
@@ -102,7 +106,7 @@ function placeAttackers() {
     for (let j = 0; j < fullPath.length; j += speed) {
       steppedPath.push(fullPath[j]);
     }
-    attackers.push({ fullPath, steppedPath, speed, pathColor: pathColors[i], currentIndex: 0 });
+    attackers.push({ fullPath, steppedPath, speed, pathColor: pathColors[i], currentIndex: 0, baseTarget: chosenTarget });
   }
 }
 function drawBoard(boardArr) {
@@ -145,7 +149,7 @@ function drawPaths() {
   ctx.font = "16px Arial";
   ctx.fillStyle = "black";
   for (let atk of attackers) {
-    for (let i = 1; i < atk.steppedPath.length - 1; i++) {
+    for (let i = 1; i < atk.steppedPath.length; i++) {
       let pr = atk.steppedPath[i][0];
       let pc = atk.steppedPath[i][1];
       let x = pc * CELL_SIZE + CELL_SIZE / 2 - 5;
@@ -169,32 +173,27 @@ function newGame() {
   drawPaths();
 }
 function nextTurn() {
-  attackers = attackers.filter(atk => {
+  let remainingAttackers = [];
+  for (let atk of attackers) {
     if (atk.currentIndex < atk.steppedPath.length - 1) {
-      let speed = atk.speed;
-      let currentFullIndex = atk.currentIndex * speed;
-      if (speed === 2 && atk.fullPath.length > currentFullIndex + 1) {
-        let intermediateTile = atk.fullPath[currentFullIndex + 1];
-        if (shotTile && intermediateTile[0] === shotTile[0] && intermediateTile[1] === shotTile[1]) {
-          return false;
-        }
-      }
       let nextIndex = atk.currentIndex + 1;
       let nextTile = atk.steppedPath[nextIndex];
       if (shotTile && nextTile[0] === shotTile[0] && nextTile[1] === shotTile[1]) {
-        return false;
+        continue;
       } else {
         atk.currentIndex = nextIndex;
-        return true;
+        remainingAttackers.push(atk);
       }
+    } else {
+      let [defRow, defCol] = atk.baseTarget;
+      board[defRow][defCol] = 0;
     }
-    return true;
-  });
+  }
+  attackers = remainingAttackers;
   shotTile = null;
   drawBoard(board);
   drawPaths();
 }
-
 canvas.addEventListener("mousemove", function(e) {
   let rect = canvas.getBoundingClientRect();
   let x = e.clientX - rect.left;
