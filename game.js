@@ -4,9 +4,10 @@ function loadImage(src) {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject("Failed to load " + src);
-    img.src = src + "?v=" + Date.now();
+    img.src = "./" + src + "?v=" + Date.now();
   });
 }
+
 Promise.all([loadImage("Defender.png"), loadImage("Attacker.JPG")])
   .then(images => {
     defenderImg = images[0];
@@ -170,6 +171,14 @@ function newGame() {
 function nextTurn() {
   attackers = attackers.filter(atk => {
     if (atk.currentIndex < atk.steppedPath.length - 1) {
+      let speed = atk.speed;
+      let currentFullIndex = atk.currentIndex * speed;
+      if (speed === 2 && atk.fullPath.length > currentFullIndex + 1) {
+        let intermediateTile = atk.fullPath[currentFullIndex + 1];
+        if (shotTile && intermediateTile[0] === shotTile[0] && intermediateTile[1] === shotTile[1]) {
+          return false;
+        }
+      }
       let nextIndex = atk.currentIndex + 1;
       let nextTile = atk.steppedPath[nextIndex];
       if (shotTile && nextTile[0] === shotTile[0] && nextTile[1] === shotTile[1]) {
@@ -185,6 +194,7 @@ function nextTurn() {
   drawBoard(board);
   drawPaths();
 }
+
 canvas.addEventListener("mousemove", function(e) {
   let rect = canvas.getBoundingClientRect();
   let x = e.clientX - rect.left;
