@@ -49,31 +49,38 @@ function placeDefenders(boardArr) {
   boardArr[7][7] = 1;
 }
 
-function bresenhamLine(r0, c0, r1, c1) {
-  let path = [];
-  let dr = Math.abs(r1 - r0);
-  let dc = Math.abs(c1 - c0);
-  let sr = r0 < r1 ? 1 : -1;
-  let sc = c0 < c1 ? 1 : -1;
-  let err = dr - dc;
-  path.push([r0, c0]);
-  while (r0 !== r1 || c0 !== c1) {
-    let e2 = 2 * err;
-    if (e2 > -dc) { err -= dc; r0 += sr; }
-    if (e2 < dr) { err += dc; c0 += sc; }
-    path.push([r0, c0]);
-  }
-  return path;
+// Function to calculate Euclidean distance between two points
+function calculateDistance(r1, c1, r2, c2) {
+  return Math.sqrt(Math.pow(r2 - r1, 2) + Math.pow(c2 - c1, 2));
 }
 
 function generatePathStraight(r0, c0, r1, c1) {
-  return bresenhamLine(r0, c0, r1, c1);
+  let path = [];
+  let currentR = r0;
+  let currentC = c0;
+
+  while (currentR !== r1 || currentC !== c1) {
+    if (currentR < r1) {
+      currentR++;
+    } else if (currentR > r1) {
+      currentR--;
+    } else if (currentC < c1) {
+      currentC++;
+    } else if (currentC > c1) {
+      currentC--;
+    }
+    path.push([currentR, currentC]);
+  }
+
+  return path;
 }
 
 function generatePathCurve(r0, c0, r1, c1) {
   let curvePoints = [];
   let midR = (r0 + r1) / 2 - 2;
   let midC = (c0 + c1) / 2;
+
+  // Generate the curve points
   for (let t = 0; t <= 1.0001; t += 0.1) {
     let x = (1 - t) * (1 - t) * c0 + 2 * (1 - t) * t * midC + t * t * c1;
     let y = (1 - t) * (1 - t) * r0 + 2 * (1 - t) * t * midR + t * t * r1;
@@ -81,14 +88,30 @@ function generatePathCurve(r0, c0, r1, c1) {
     let ry = Math.round(y);
     curvePoints.push([ry, rx]);
   }
+
+  // Simplify the path to only horizontal or vertical steps
   let uniquePath = [];
+  let prevR = r0;
+  let prevC = c0;
   for (let i = 0; i < curvePoints.length; i++) {
     let rr = curvePoints[i][0];
     let cc = curvePoints[i][1];
-    if (i === 0 || rr !== curvePoints[i - 1][0] || cc !== curvePoints[i - 1][1]) {
+
+    if (rr !== prevR && cc !== prevC) {
+      // Move horizontally first, then vertically
+      if (cc !== prevC) {
+        uniquePath.push([prevR, cc]);
+      }
+      if (rr !== prevR) {
+        uniquePath.push([rr, cc]);
+      }
+    } else {
       uniquePath.push([rr, cc]);
     }
+    prevR = rr;
+    prevC = cc;
   }
+
   return uniquePath;
 }
 
@@ -100,24 +123,43 @@ function placeAttackers() {
     if (!usedCols.includes(randCol)) usedCols.push(randCol);
   }
   let pathColors = ["orange", "green", "purple"];
+  let defenderPositions = [[8, 2], [7, 7]]; // Positions of defenders
+
   for (let i = 0; i < 3; i++) {
     let col = usedCols[i];
-    let targetOptions = [[8, 2], [7, 7]];
-    let baseTarget = targetOptions[Math.floor(Math.random() * targetOptions.length)];
-    let dRow = baseTarget[0] - 0;
-    let dCol = baseTarget[1] - col;
+    let startRow = 0;
+    let startCol = col;
+
+    // Find the closest defender
+    let closestDefender = defenderPositions[0];
+    let minDistance = calculateDistance(startRow, startCol, closestDefender[0], closestDefender[1]);
+
+    for (let j = 1; j < defenderPositions.length; j++) {
+      let distance = calculateDistance(startRow, startCol, defenderPositions[j][0], defenderPositions[j][1]);
+      if (distance < minDistance) {
+        closestDefender = defenderPositions[j];
+        minDistance = distance;
+      }
+    }
+
+    let baseTarget = closestDefender;
+    let dRow = baseTarget[0] - startRow;
+    let dCol = baseTarget[1] - startCol;
     let signRow = dRow >= 0 ? 1 : -1;
     let signCol = dCol >= 0 ? 1 : -1;
     let chosenTarget = [baseTarget[0] - signRow, baseTarget[1] - signCol];
+
     let pathType = Math.random() < 0.5 ? "straight" : "curve";
     let speed = Math.random() < 0.5 ? 1 : 2;
     let fullPath = pathType === "straight" 
-      ? generatePathStraight(0, col, chosenTarget[0], chosenTarget[1])
-      : generatePathCurve(0, col, chosenTarget[0], chosenTarget[1]);
+      ? generatePathStraight(startRow, startCol, chosenTarget[0], chosenTarget[1])
+      : generatePathCurve(startRow, startCol, chosenTarget[0], chosenTarget[1]);
+
     let steppedPath = [];
     for (let j = 0; j < fullPath.length; j += speed) {
       steppedPath.push(fullPath[j]);
     }
+
     attackers.push({
       fullPath,
       steppedPath,
@@ -241,7 +283,6 @@ function nextTurn() {
   drawBoard(board);
   drawPaths();
 }
-
 
 canvas.addEventListener("mousemove", function(e) {
   if (gameOver) return;
