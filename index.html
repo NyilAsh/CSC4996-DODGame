@@ -8,19 +8,196 @@
       flex-direction: column;
       align-items: center;
       margin-top: 30px;
+      background-color: #1a1a1a;
+      color: white;
+      font-family: Arial, sans-serif;
     }
     #gameCanvas {
-      border: 1px solid black;
+      border: 1px solid #333;
       margin-bottom: 10px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 8px 16px;
+      margin: 0 5px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #444;
+    }
+    button.active {
+      background-color: #666;
+    }
+    #instructionsPanel {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.95);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 100;
+    }
+    #instructionsPanel::-webkit-scrollbar {
+      width: 8px;
+    }
+    #instructionsPanel::-webkit-scrollbar-track {
+      background: #1a1a1a;
+      border-radius: 4px;
+    }
+    #instructionsPanel::-webkit-scrollbar-thumb {
+      background: #4CAF50;
+      border-radius: 4px;
+    }
+    #instructionsPanel::-webkit-scrollbar-thumb:hover {
+      background: #45a049;
+    }
+    .instruction-section {
+      margin-bottom: 20px;
+      padding-right: 10px;
+    }
+    .instruction-section:last-child {
+      margin-bottom: 10px;
+    }
+    .instruction-section h3 {
+      color: #4CAF50;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+    .instruction-section ul {
+      list-style-type: none;
+      padding-left: 0;
+      margin: 0;
+    }
+    .instruction-section li {
+      margin-bottom: 12px;
+      padding-left: 24px;
+      position: relative;
+      line-height: 1.4;
+    }
+    .instruction-section li:before {
+      content: "•";
+      position: absolute;
+      left: 8px;
+      color: #4CAF50;
+    }
+    .close-btn {
+      position: sticky;
+      top: 0;
+      right: 0;
+      float: right;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 5px;
+      margin: -10px -10px 10px 10px;
+      z-index: 101;
+    }
+    .close-btn:hover {
+      color: #4CAF50;
+    }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 99;
+    }
+    .modal-overlay.visible {
+      display: block;
+    }
+    #instructionsPanel.visible {
+      display: block;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="500" height="500"></canvas>
-  <div>
+  <div class="tab-container">
     <button id="newGameBtn">New Game</button>
+    <button id="instructionsBtn">Instructions</button>
     <button id="nextTurnBtn">Next Turn</button>
   </div>
+
+  <canvas id="gameCanvas"></canvas>
+  <div id="turnIndicator">Turn 0 - Defender's Turn</div>
+
+  <div class="modal-overlay" id="modalOverlay"></div>
+  <div id="instructionsPanel">
+    <button class="close-btn">&times;</button>
+    <div class="instruction-section">
+      <h3>Game Overview</h3>
+      <ul>
+        <li>This is a turn-based point defense system where defenders (blue) must protect against incoming attackers (red)</li>
+        <li>The game alternates between defender and attacker turns, shown at the bottom of the screen</li>
+        <li>Your goal is to protect the defenders by anticipating and intercepting attacker movements</li>
+      </ul>
+    </div>
+    <div class="instruction-section">
+      <h3>Defender's Turn</h3>
+      <ul>
+        <li>During your turn, you can target multiple tiles that you think attackers will move to</li>
+        <li>Click on any tile to target it - it will be marked with a red X</li>
+        <li>Targeted tiles will be fired upon in the next turn</li>
+        <li>You cannot target tiles containing defenders or current attacker positions</li>
+        <li>Use the numbered paths to predict where attackers will move next</li>
+        <li>Click "Next Turn" when you're done targeting</li>
+      </ul>
+    </div>
+    <div class="instruction-section">
+      <h3>Attacker's Turn</h3>
+      <ul>
+        <li>Attackers follow predetermined paths shown by colored dashed lines</li>
+        <li>Each attacker moves at a speed of 1, 2, or 3 tiles per turn</li>
+        <li>Numbers along the path show the sequence of movement</li>
+        <li>If an attacker moves onto a targeted tile, it is destroyed</li>
+        <li>If an attacker reaches a defender's position, that defender is eliminated</li>
+        <li>Attackers cannot change their path or speed once chosen</li>
+      </ul>
+    </div>
+    <div class="instruction-section">
+      <h3>Game Rules & Strategy</h3>
+      <ul>
+        <li>New attackers appear every 20 turns from the top of the grid</li>
+        <li>Attackers must spawn at least 20 tiles away from any defender</li>
+        <li>Study the numbered paths carefully to predict attacker movements</li>
+        <li>Try to target tiles where multiple attackers might intersect</li>
+        <li>The game continues until all defenders are eliminated</li>
+        <li>Use "New Game" to start a fresh game at any time</li>
+      </ul>
+    </div>
+    <div class="instruction-section">
+      <h3>Visual Guide</h3>
+      <ul>
+        <li>Blue Rectangles: Defenders (stationary)</li>
+        <li>Red Diamonds: Attackers (moving)</li>
+        <li>Colored Dashed Lines: Attacker paths</li>
+        <li>White Numbers: Movement sequence</li>
+        <li>Red X: Targeted tiles</li>
+        <li>Green Highlight: Hover indicator for targeting</li>
+      </ul>
+    </div>
+  </div>
+
   <script src="game.js"></script>
 </body>
 </html>
