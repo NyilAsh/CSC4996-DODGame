@@ -184,39 +184,134 @@ function endGame(reason) {
   nextTurnBtn.disabled = true;
   statusMessage.textContent = reason;
 }
-function nextTurn() {
-  if(gameOver) return;
-  let remainingAttackers = [];
-  for(let atk of attackers){
-    if(atk.currentIndex < atk.steppedPath.length - 1){
-      let nextIndex = atk.currentIndex + 1;
-      let nextTile = atk.steppedPath[nextIndex];
-      let shotHit = shotTiles.some(tile => tile[0]===nextTile[0] && tile[1]===nextTile[1]);
-      if(shotHit){
-        continue;
-      } else {
-        atk.currentIndex = nextIndex;
-        if(atk.currentIndex === atk.steppedPath.length - 1){
-          board[atk.baseTarget[0]][atk.baseTarget[1]] = 0;
-          drawBoard(board);
-          drawPaths();
-          endGame("A defender was destroyed!");
-          return;
-        }
-        remainingAttackers.push(atk);
+function redirectAttackers(destroyedDefender) {
+  const remainingDefenders = [];
+  // Find remaining defenders
+  for(let r=0; r<GRID_SIZE; r++){
+    for(let c=0; c<GRID_SIZE; c++){
+      if(board[r][c] === 1 && (r !== destroyedDefender[0] || c !== destroyedDefender[1])) {
+        remainingDefenders.push([r,c]);
       }
-    } else {
-      board[atk.baseTarget[0]][atk.baseTarget[1]] = 0;
-      drawBoard(board);
-      drawPaths();
-      endGame("A defender was destroyed!");
-      return;
     }
   }
-  attackers = remainingAttackers;
+  
+  if(remainingDefenders.length === 0) {
+    drawBoard(board);
+    drawPaths();
+    endGame("All defenders destroyed - Attackers win!");
+    return;
+  }
+
+  // Redirect attackers that were targeting the destroyed defender
+  for(let atk of attackers) {
+    if(atk.baseTarget[0] === destroyedDefender[0] && atk.baseTarget[1] === destroyedDefender[1]) {
+      // Find new target (nearest remaining defender)
+      let newTarget = remainingDefenders[0];
+      let minDist = Math.abs(newTarget[0]-atk.steppedPath[0][0]) + Math.abs(newTarget[1]-atk.steppedPath[0][1]);
+      
+      for(let def of remainingDefenders.slice(1)) {
+        let dist = Math.abs(def[0]-atk.steppedPath[0][0]) + Math.abs(def[1]-atk.steppedPath[0][1]);
+        if(dist < minDist) {
+          minDist = dist;
+          newTarget = def;
+        }
+      }
+      
+      // Regenerate path to new target
+      atk.baseTarget = newTarget;
+      let pathType = Math.random()<0.5 ? "straight" : "curve";
+      let fullPath = pathType==="straight" 
+        ? generateManhattanPath(atk.steppedPath[atk.currentIndex][0], atk.steppedPath[atk.currentIndex][1], newTarget[0], newTarget[1])
+        : generateManhattanCurvePath(atk.steppedPath[atk.currentIndex][0], atk.steppedPath[atk.currentIndex][1], newTarget[0], newTarget[1]);
+      
+      if(fullPath[fullPath.length-1][0]!==newTarget[0] || fullPath[fullPath.length-1][1]!==newTarget[1]){
+        fullPath.push(newTarget);
+      }
+      
+      let steppedPath = [];
+      for(let j=0;j<fullPath.length;j+=atk.speed){
+        steppedPath.push(fullPath[j]);
+      }
+      if(steppedPath[steppedPath.length-1][0]!==newTarget[0] || steppedPath[steppedPath.length-1][1]!==newTarget[1]){
+        steppedPath[steppedPath.length-1] = newTarget;
+      }
+      
+      atk.fullPath = fullPath;
+      atk.steppedPath = steppedPath;
+      atk.currentIndex = 0;
+    }
+  }
+}
+
+function nextTurn() {
+  if(gameOver) return;
+  
+  // Move all attackers
+  let movedAttackers = [];
+  let destroyedDefenders = [];
+  
+  for(let atk of attackers) {
+    if(atk.currentIndex < atk.steppedPath.length - 1) {
+      atk.currentIndex++;
+      movedAttackers.push(atk);
+    }
+  }
+  
+  // Check for shot hits
+  let remainingAttackers = [];
+  for(let atk of movedAttackers) {
+    let currentTile = atk.steppedPath[atk.currentIndex];
+    let shotHit = shotTiles.some(tile => tile[0]===currentTile[0] && tile[1]===currentTile[1]);
+    
+    if(!shotHit) {
+      remainingAttackers.push(atk);
+    }
+  }
+  
+  // Check for defender collisions (can destroy multiple defenders)
+  let attackersAfterCollisions = [];
+  for(let atk of remainingAttackers) {
+    let currentTile = atk.steppedPath[atk.currentIndex];
+    if(board[currentTile[0]][currentTile[1]] === 1) {
+      // Defender destroyed
+      board[currentTile[0]][currentTile[1]] = 0;
+      destroyedDefenders.push([currentTile[0], currentTile[1]]);
+      // This attacker is also destroyed (don't add to attackersAfterCollisions)
+    } else {
+      attackersAfterCollisions.push(atk);
+    }
+  }
+  
+  attackers = attackersAfterCollisions;
   shotTiles = [];
+  
+  // Handle any defender destructions
+  if(destroyedDefenders.length > 0) {
+    // Check if all defenders are gone
+    if(countDefenders() === 0) {
+      endGame("All defenders destroyed - Attackers win!");
+      drawBoard(board);
+      drawPaths();
+      return;
+    }
+    
+    // Redirect attackers that were targeting destroyed defenders
+    for(let def of destroyedDefenders) {
+      redirectAttackers(def);
+    }
+  }
   drawBoard(board);
   drawPaths();
+  // Check win conditions
+  if(attackers.length === 0) {
+    if(countDefenders() > 0) {
+      endGame("All attackers eliminated - Defenders win!");
+    } else {
+      endGame("All defenders destroyed - Attackers win!");
+    }
+    return;
+  }
+  
 }
 function getDefendersAlive() {
   return countDefenders();
