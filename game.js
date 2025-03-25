@@ -18,6 +18,7 @@ Promise.all([loadImage("Defender.png"), loadImage("Attacker.JPG")])
     attackerImg = null;
     newGame();
   });
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const newGameBtn = document.getElementById("newGameBtn");
@@ -130,7 +131,7 @@ function placeAttackers() {
   for (let i = 0; i < defenders.length; i++) {
     let col = usedCols[i];
     let spawn = [0, col];
-    let chosenTarget = defenders[i]; // Assign to specific defender
+    let chosenTarget = defenders[i];
     let pathType = Math.random() < 0.5 ? "straight" : "curve";
     let speed = Math.random() < 0.5 ? 1 : 2;
     let fullPath = pathType === "straight"
@@ -158,11 +159,11 @@ function placeAttackers() {
     });
   }
 
-  // Assign remaining attackers (if any) randomly
+  // Assign remaining attackers randomly
   for (let i = defenders.length; i < 3; i++) {
     let col = usedCols[i];
     let spawn = [0, col];
-    let chosenTarget = defenders[Math.floor(Math.random() * defenders.length)]; // Random defender
+    let chosenTarget = defenders[Math.floor(Math.random() * defenders.length)];
     let pathType = Math.random() < 0.5 ? "straight" : "curve";
     let speed = Math.random() < 0.5 ? 1 : 2;
     let fullPath = pathType === "straight"
@@ -304,7 +305,6 @@ function redirectAttackers(destroyedDefender) {
         if (dist < minDist) { minDist = dist; newTarget = def; }
       }
       atk.baseTarget = newTarget;
-      let pathType = "straight";
       let fullPath = generateManhattanPath(
         atk.steppedPath[atk.currentIndex][0],
         atk.steppedPath[atk.currentIndex][1],
@@ -341,10 +341,9 @@ function nextTurn() {
         (tile) => tile[0] === nextTile[0] && tile[1] === nextTile[1]
       );
       if (shotHit) {
-        continue; // attacker is eliminated
+        continue;
       } else {
         atk.currentIndex = nextIndex;
-        // Check if attacker reached target
         if (atk.currentIndex === atk.steppedPath.length - 1) {
           board[atk.baseTarget[0]][atk.baseTarget[1]] = 0;
           redirectAttackers(atk.baseTarget);
@@ -352,7 +351,6 @@ function nextTurn() {
         remainingAttackers.push(atk);
       }
     } else {
-      // Attacker already at target - destroy defender
       board[atk.baseTarget[0]][atk.baseTarget[1]] = 0;
       redirectAttackers(atk.baseTarget);
     }
@@ -362,7 +360,6 @@ function nextTurn() {
   shotTiles = [];
   drawBoardAndPaths();
   
-  // Check game over conditions
   if (attackers.length === 0) {
     endGame("All attackers eliminated - Defenders win!");
   } else if (countDefenders() === 0) {
@@ -384,14 +381,33 @@ canvas.addEventListener("mousemove", function(e) {
 canvas.addEventListener("click", function() {
   if (gameOver) return;
   if (hoveredCell) {
+    // Prevent shooting defenders or attackers
     if (board[hoveredCell[0]][hoveredCell[1]] === 1) return;
     for (let atk of attackers) {
       let current = atk.steppedPath[atk.currentIndex];
       if (current[0] === hoveredCell[0] && current[1] === hoveredCell[1]) return;
     }
-    let defendersAlive = countDefenders();
-    if (shotTiles.length < defendersAlive) {
-      shotTiles.push(hoveredCell);
+    
+    // Check if this cell is already selected
+    let alreadySelected = shotTiles.some(tile => 
+      tile[0] === hoveredCell[0] && tile[1] === hoveredCell[1]
+    );
+    
+    if (alreadySelected) {
+      // Remove the shot if clicking on an already selected cell
+      shotTiles = shotTiles.filter(tile => 
+        !(tile[0] === hoveredCell[0] && tile[1] === hoveredCell[1])
+      );
+    } else {
+      let defendersAlive = countDefenders();
+      if (shotTiles.length < defendersAlive) {
+        // Add new shot if under limit
+        shotTiles.push(hoveredCell);
+      } else {
+        // Replace oldest shot if at limit (rolling selection)
+        shotTiles.shift(); // Remove oldest shot
+        shotTiles.push(hoveredCell); // Add new shot
+      }
     }
     drawBoardAndPaths();
   }
