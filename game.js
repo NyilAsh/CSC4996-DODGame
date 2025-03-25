@@ -23,7 +23,9 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const newGameBtn = document.getElementById("newGameBtn");
 const nextTurnBtn = document.getElementById("nextTurnBtn");
+const actionLogBtn = document.getElementById("actionLogBtn");
 const statusMessage = document.getElementById("statusMessage");
+const actionLog = document.getElementById("actionLog");
 const GRID_SIZE = 10;
 const CELL_SIZE = 50;
 let board = [];
@@ -32,6 +34,7 @@ let trainingData = [];
 let hoveredCell = null;
 let shotTiles = [];
 let gameOver = false;
+let actions = [];
 
 function createEmptyBoard() {
   let arr = [];
@@ -118,16 +121,12 @@ function placeAttackers() {
     if (!usedCols.includes(randCol)) usedCols.push(randCol);
   }
   let pathColors = ["orange", "green", "purple"];
-
-  // Get all defender positions
   let defenders = [];
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
       if (board[r][c] === 1) defenders.push([r, c]);
     }
   }
-
-  // First assign one attacker to each defender
   for (let i = 0; i < defenders.length; i++) {
     let col = usedCols[i];
     let spawn = [0, col];
@@ -158,8 +157,6 @@ function placeAttackers() {
       baseTarget: chosenTarget
     });
   }
-
-  // Assign remaining attackers randomly
   for (let i = defenders.length; i < 3; i++) {
     let col = usedCols[i];
     let spawn = [0, col];
@@ -204,23 +201,41 @@ function countDefenders() {
 
 function drawBoard(boardArr) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw column labels (A-J)
+  ctx.font = "14px Arial";
+  ctx.fillStyle = "black";
+  ctx.textAlign = "center";
+  for (let c = 0; c < GRID_SIZE; c++) {
+    ctx.fillText(String.fromCharCode(65 + c), (c * CELL_SIZE) + (CELL_SIZE / 2), 15);
+  }
+  
+  // Draw row labels (1-10)
+  ctx.textAlign = "right";
+  for (let r = 0; r < GRID_SIZE; r++) {
+    ctx.fillText((r + 1).toString(), 20, (r * CELL_SIZE) + (CELL_SIZE / 2) + 5);
+  }
+  
+  // Draw grid and pieces
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
       ctx.strokeStyle = "black";
-      ctx.strokeRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      ctx.strokeRect(c * CELL_SIZE + 25, r * CELL_SIZE + 20, CELL_SIZE, CELL_SIZE);
       let val = boardArr[r][c];
       if (val === 1) {
-        if (defenderImg) ctx.drawImage(defenderImg, c * CELL_SIZE + 5, r * CELL_SIZE + 5, CELL_SIZE - 10, CELL_SIZE - 10);
+        if (defenderImg) ctx.drawImage(defenderImg, c * CELL_SIZE + 30, r * CELL_SIZE + 25, CELL_SIZE - 10, CELL_SIZE - 10);
       }
     }
   }
+  
   for (let tile of shotTiles) {
     ctx.fillStyle = "rgba(255,0,0,0.3)";
-    ctx.fillRect(tile[1] * CELL_SIZE, tile[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+    ctx.fillRect(tile[1] * CELL_SIZE + 25, tile[0] * CELL_SIZE + 20, CELL_SIZE, CELL_SIZE);
   }
+  
   if (!shotTiles.length && hoveredCell) {
     ctx.fillStyle = "rgba(0,255,0,0.3)";
-    ctx.fillRect(hoveredCell[1] * CELL_SIZE, hoveredCell[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+    ctx.fillRect(hoveredCell[1] * CELL_SIZE + 25, hoveredCell[0] * CELL_SIZE + 20, CELL_SIZE, CELL_SIZE);
   }
 }
 
@@ -233,27 +248,29 @@ function drawPaths() {
     for (let i = 0; i < atk.fullPath.length; i++) {
       let pr = atk.fullPath[i][0];
       let pc = atk.fullPath[i][1];
-      let x = pc * CELL_SIZE + CELL_SIZE / 2;
-      let y = pr * CELL_SIZE + CELL_SIZE / 2;
+      let x = (pc * CELL_SIZE) + 25 + (CELL_SIZE / 2);
+      let y = (pr * CELL_SIZE) + 20 + (CELL_SIZE / 2);
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
   }
+  
   ctx.setLineDash([]);
   ctx.font = "16px Arial";
   ctx.fillStyle = "black";
+  ctx.textAlign = "center";
   for (let atk of attackers) {
     for (let i = 1; i < atk.steppedPath.length; i++) {
       let pr = atk.steppedPath[i][0];
       let pc = atk.steppedPath[i][1];
-      let x = pc * CELL_SIZE + CELL_SIZE / 2 - 5;
-      let y = pr * CELL_SIZE + CELL_SIZE / 2 + 5;
+      let x = (pc * CELL_SIZE) + 25 + (CELL_SIZE / 2) - 5;
+      let y = (pr * CELL_SIZE) + 20 + (CELL_SIZE / 2) + 5;
       ctx.fillText(i.toString(), x, y);
     }
     let cr = atk.steppedPath[atk.currentIndex][0];
     let cc = atk.steppedPath[atk.currentIndex][1];
-    if (attackerImg) ctx.drawImage(attackerImg, cc * CELL_SIZE + 5, cr * CELL_SIZE + 5, CELL_SIZE - 10, CELL_SIZE - 10);
+    if (attackerImg) ctx.drawImage(attackerImg, (cc * CELL_SIZE) + 30, (cr * CELL_SIZE) + 25, CELL_SIZE - 10, CELL_SIZE - 10);
   }
 }
 
@@ -271,6 +288,8 @@ function newGame() {
   placeAttackers();
   shotTiles = [];
   hoveredCell = null;
+  actions = [];
+  updateActionLog();
   for (let atk of attackers) { atk.currentIndex = 0; }
   trainingData.push(JSON.parse(JSON.stringify(board)));
   drawBoardAndPaths();
@@ -280,6 +299,8 @@ function endGame(reason) {
   gameOver = true;
   nextTurnBtn.disabled = true;
   statusMessage.textContent = reason;
+  actions.push("Game ended: " + reason);
+  updateActionLog();
 }
 
 function redirectAttackers(destroyedDefender) {
@@ -332,6 +353,7 @@ function redirectAttackers(destroyedDefender) {
 function nextTurn() {
   if (gameOver) return;
   
+  actions.push("Turn advanced");
   let remainingAttackers = [];
   for (let atk of attackers) {
     if (atk.currentIndex < atk.steppedPath.length - 1) {
@@ -341,17 +363,20 @@ function nextTurn() {
         (tile) => tile[0] === nextTile[0] && tile[1] === nextTile[1]
       );
       if (shotHit) {
+        actions.push("Attacker " + atk.id + " was hit at " + String.fromCharCode(65 + nextTile[0]) + (nextTile[1] + 1));
         continue;
       } else {
         atk.currentIndex = nextIndex;
         if (atk.currentIndex === atk.steppedPath.length - 1) {
           board[atk.baseTarget[0]][atk.baseTarget[1]] = 0;
+          actions.push("Attacker " + atk.id + " reached defender at " + String.fromCharCode(65 + atk.baseTarget[0]) + (atk.baseTarget[1] + 1));
           redirectAttackers(atk.baseTarget);
         }
         remainingAttackers.push(atk);
       }
     } else {
       board[atk.baseTarget[0]][atk.baseTarget[1]] = 0;
+      actions.push("Attacker " + atk.id + " destroyed defender at " + String.fromCharCode(65 + atk.baseTarget[0]) + (atk.baseTarget[1] + 1));
       redirectAttackers(atk.baseTarget);
     }
   }
@@ -365,6 +390,11 @@ function nextTurn() {
   } else if (countDefenders() === 0) {
     endGame("All defenders destroyed - Attackers win!");
   }
+  updateActionLog();
+}
+
+function updateActionLog() {
+  actionLog.innerHTML = actions.map(action => "<li>" + action + "</li>").join("");
 }
 
 canvas.addEventListener("mousemove", function(e) {
@@ -372,46 +402,59 @@ canvas.addEventListener("mousemove", function(e) {
   let rect = canvas.getBoundingClientRect();
   let x = e.clientX - rect.left;
   let y = e.clientY - rect.top;
-  let col = Math.floor(x / CELL_SIZE);
-  let row = Math.floor(y / CELL_SIZE);
-  hoveredCell = [row, col];
+  let col = Math.floor((x - 25) / CELL_SIZE);
+  let row = Math.floor((y - 20) / CELL_SIZE);
+  if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
+    hoveredCell = [row, col];
+  } else {
+    hoveredCell = null;
+  }
   drawBoardAndPaths();
 });
 
-canvas.addEventListener("click", function() {
+canvas.addEventListener("click", function(e) {
   if (gameOver) return;
-  if (hoveredCell) {
-    // Prevent shooting defenders or attackers
+  let rect = canvas.getBoundingClientRect();
+  let x = e.clientX - rect.left;
+  let y = e.clientY - rect.top;
+  let col = Math.floor((x - 25) / CELL_SIZE);
+  let row = Math.floor((y - 20) / CELL_SIZE);
+  
+  if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
+    hoveredCell = [row, col];
     if (board[hoveredCell[0]][hoveredCell[1]] === 1) return;
     for (let atk of attackers) {
       let current = atk.steppedPath[atk.currentIndex];
       if (current[0] === hoveredCell[0] && current[1] === hoveredCell[1]) return;
     }
     
-    // Check if this cell is already selected
     let alreadySelected = shotTiles.some(tile => 
       tile[0] === hoveredCell[0] && tile[1] === hoveredCell[1]
     );
     
     if (alreadySelected) {
-      // Remove the shot if clicking on an already selected cell
       shotTiles = shotTiles.filter(tile => 
         !(tile[0] === hoveredCell[0] && tile[1] === hoveredCell[1])
       );
+      actions.push("Removed shot at " + String.fromCharCode(65 + hoveredCell[0]) + (hoveredCell[1] + 1));
     } else {
       let defendersAlive = countDefenders();
       if (shotTiles.length < defendersAlive) {
-        // Add new shot if under limit
         shotTiles.push(hoveredCell);
+        actions.push("Selected shot at " + String.fromCharCode(65 + hoveredCell[0]) + (hoveredCell[1] + 1));
       } else {
-        // Replace oldest shot if at limit (rolling selection)
-        shotTiles.shift(); // Remove oldest shot
-        shotTiles.push(hoveredCell); // Add new shot
+        shotTiles.shift();
+        shotTiles.push(hoveredCell);
+        actions.push("Replaced shot with " + String.fromCharCode(65 + hoveredCell[0]) + (hoveredCell[1] + 1));
       }
     }
+    updateActionLog();
     drawBoardAndPaths();
   }
 });
 
 newGameBtn.addEventListener("click", newGame);
 nextTurnBtn.addEventListener("click", nextTurn);
+actionLogBtn.addEventListener("click", function() {
+  actionLog.style.display = actionLog.style.display === "none" ? "block" : "none";
+});
