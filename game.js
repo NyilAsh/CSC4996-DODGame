@@ -31,6 +31,7 @@ let trainingData = [];
 let hoveredCell = null;
 let shotTiles = [];
 let gameOver = false;
+
 function createEmptyBoard() {
   let arr = [];
   for (let r = 0; r < GRID_SIZE; r++) {
@@ -41,10 +42,12 @@ function createEmptyBoard() {
   }
   return arr;
 }
+
 function placeDefenders(boardArr) {
   boardArr[8][2] = 1;
   boardArr[7][7] = 1;
 }
+
 function generateManhattanPath(r0, c0, r1, c1) {
   let path = [];
   let current = [r0, c0];
@@ -61,6 +64,7 @@ function generateManhattanPath(r0, c0, r1, c1) {
   }
   return path;
 }
+
 function generateSmoothManhattanCurvePath(r0, c0, r1, c1) {
   let points = [];
   let midR = (r0 + r1) / 2 - 2;
@@ -105,12 +109,6 @@ function generateSmoothManhattanCurvePath(r0, c0, r1, c1) {
   return unique;
 }
 
-function nearestDefender(spawn) {
-  let def1 = [8, 2], def2 = [7, 7];
-  let dist1 = Math.abs(def1[0] - spawn[0]) + Math.abs(def1[1] - spawn[1]);
-  let dist2 = Math.abs(def2[0] - spawn[0]) + Math.abs(def2[1] - spawn[1]);
-  return dist1 <= dist2 ? def1 : def2;
-}
 function placeAttackers() {
   attackers = [];
   let usedCols = [];
@@ -119,10 +117,52 @@ function placeAttackers() {
     if (!usedCols.includes(randCol)) usedCols.push(randCol);
   }
   let pathColors = ["orange", "green", "purple"];
-  for (let i = 0; i < 3; i++) {
+
+  // Get all defender positions
+  let defenders = [];
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      if (board[r][c] === 1) defenders.push([r, c]);
+    }
+  }
+
+  // First assign one attacker to each defender
+  for (let i = 0; i < defenders.length; i++) {
     let col = usedCols[i];
     let spawn = [0, col];
-    let chosenTarget = nearestDefender(spawn);
+    let chosenTarget = defenders[i]; // Assign to specific defender
+    let pathType = Math.random() < 0.5 ? "straight" : "curve";
+    let speed = Math.random() < 0.5 ? 1 : 2;
+    let fullPath = pathType === "straight"
+      ? generateManhattanPath(spawn[0], spawn[1], chosenTarget[0], chosenTarget[1])
+      : generateSmoothManhattanCurvePath(spawn[0], spawn[1], chosenTarget[0], chosenTarget[1]);
+    if (fullPath[fullPath.length - 1][0] !== chosenTarget[0] || fullPath[fullPath.length - 1][1] !== chosenTarget[1]) {
+      fullPath.push(chosenTarget);
+    }
+    let steppedPath = [fullPath[0]];
+    let currentIndex = 0;
+    while (currentIndex < fullPath.length - 1) {
+      let stepsRemaining = fullPath.length - 1 - currentIndex;
+      let nextStep = Math.min(speed, stepsRemaining);
+      currentIndex += nextStep;
+      steppedPath.push(fullPath[currentIndex]);
+    }
+    attackers.push({
+      id: i + 1,
+      fullPath: fullPath,
+      steppedPath: steppedPath,
+      speed: speed,
+      pathColor: pathColors[i],
+      currentIndex: 0,
+      baseTarget: chosenTarget
+    });
+  }
+
+  // Assign remaining attackers (if any) randomly
+  for (let i = defenders.length; i < 3; i++) {
+    let col = usedCols[i];
+    let spawn = [0, col];
+    let chosenTarget = defenders[Math.floor(Math.random() * defenders.length)]; // Random defender
     let pathType = Math.random() < 0.5 ? "straight" : "curve";
     let speed = Math.random() < 0.5 ? 1 : 2;
     let fullPath = pathType === "straight"
@@ -150,6 +190,7 @@ function placeAttackers() {
     });
   }
 }
+
 function countDefenders() {
   let count = 0;
   for (let r = 0; r < GRID_SIZE; r++) {
@@ -159,6 +200,7 @@ function countDefenders() {
   }
   return count;
 }
+
 function drawBoard(boardArr) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let r = 0; r < GRID_SIZE; r++) {
@@ -180,6 +222,7 @@ function drawBoard(boardArr) {
     ctx.fillRect(hoveredCell[1] * CELL_SIZE, hoveredCell[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE);
   }
 }
+
 function drawPaths() {
   for (let atk of attackers) {
     ctx.setLineDash([5, 5]);
@@ -212,10 +255,12 @@ function drawPaths() {
     if (attackerImg) ctx.drawImage(attackerImg, cc * CELL_SIZE + 5, cr * CELL_SIZE + 5, CELL_SIZE - 10, CELL_SIZE - 10);
   }
 }
+
 function drawBoardAndPaths() {
   drawBoard(board);
   drawPaths();
 }
+
 function newGame() {
   gameOver = false;
   statusMessage.textContent = "";
@@ -229,11 +274,13 @@ function newGame() {
   trainingData.push(JSON.parse(JSON.stringify(board)));
   drawBoardAndPaths();
 }
+
 function endGame(reason) {
   gameOver = true;
   nextTurnBtn.disabled = true;
   statusMessage.textContent = reason;
 }
+
 function redirectAttackers(destroyedDefender) {
   const remainingDefenders = [];
   for (let r = 0; r < GRID_SIZE; r++) {
@@ -281,8 +328,10 @@ function redirectAttackers(destroyedDefender) {
     }
   }
 }
+
 function nextTurn() {
   if (gameOver) return;
+  
   let remainingAttackers = [];
   for (let atk of attackers) {
     if (atk.currentIndex < atk.steppedPath.length - 1) {
@@ -292,53 +341,35 @@ function nextTurn() {
         (tile) => tile[0] === nextTile[0] && tile[1] === nextTile[1]
       );
       if (shotHit) {
-        continue;
+        continue; // attacker is eliminated
       } else {
         atk.currentIndex = nextIndex;
+        // Check if attacker reached target
         if (atk.currentIndex === atk.steppedPath.length - 1) {
           board[atk.baseTarget[0]][atk.baseTarget[1]] = 0;
-          drawBoardAndPaths();
-          setTimeout(() => {
-            endGame("A defender was destroyed!");
-          }, 500);
-          return;
+          redirectAttackers(atk.baseTarget);
         }
         remainingAttackers.push(atk);
       }
     } else {
+      // Attacker already at target - destroy defender
       board[atk.baseTarget[0]][atk.baseTarget[1]] = 0;
-      drawBoardAndPaths();
-      setTimeout(() => {
-        endGame("A defender was destroyed!");
-      }, 500);
-      return;
+      redirectAttackers(atk.baseTarget);
     }
   }
+  
   attackers = remainingAttackers;
   shotTiles = [];
   drawBoardAndPaths();
+  
+  // Check game over conditions
   if (attackers.length === 0) {
-    if (countDefenders() > 0) {
-      endGame("All attackers eliminated - Defenders win!");
-    } else {
-      endGame("All defenders destroyed - Attackers win!");
-    }
+    endGame("All attackers eliminated - Defenders win!");
+  } else if (countDefenders() === 0) {
+    endGame("All defenders destroyed - Attackers win!");
   }
 }
 
-function countDefenders() {
-  let count = 0;
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
-      if (board[r][c] === 1) count++;
-    }
-  }
-  return count;
-}
-function drawBoardAndPaths() {
-  drawBoard(board);
-  drawPaths();
-}
 canvas.addEventListener("mousemove", function(e) {
   if (gameOver) return;
   let rect = canvas.getBoundingClientRect();
@@ -349,6 +380,7 @@ canvas.addEventListener("mousemove", function(e) {
   hoveredCell = [row, col];
   drawBoardAndPaths();
 });
+
 canvas.addEventListener("click", function() {
   if (gameOver) return;
   if (hoveredCell) {
@@ -364,5 +396,6 @@ canvas.addEventListener("click", function() {
     drawBoardAndPaths();
   }
 });
+
 newGameBtn.addEventListener("click", newGame);
 nextTurnBtn.addEventListener("click", nextTurn);
