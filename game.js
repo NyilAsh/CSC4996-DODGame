@@ -439,6 +439,7 @@ function newGame() {
   gameOver = false;
   statusMessage.textContent = "";
   nextTurnBtn.disabled = false;
+  showPaths = false;
   board = createEmptyBoard();
   placeDefenders(board);
   placeAttackers();
@@ -450,6 +451,7 @@ function newGame() {
   trainingData.push(JSON.parse(JSON.stringify(board)));
   drawBoardAndPaths();
 }
+
 
 function endGame(reason) {
   gameOver = true;
