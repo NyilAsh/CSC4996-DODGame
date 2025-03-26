@@ -24,9 +24,9 @@ const ctx = canvas.getContext("2d");
 const newGameBtn = document.getElementById("newGameBtn");
 const nextTurnBtn = document.getElementById("nextTurnBtn");
 const actionLogBtn = document.getElementById("actionLogBtn");
+const togglePathsBtn = document.getElementById("togglePathsBtn");
 const statusMessage = document.getElementById("statusMessage");
 const actionLog = document.getElementById("actionLog");
-const hidePathsCheckbox = document.getElementById("hidePathsCheckbox");
 const autoSelectBtn = document.getElementById("autoSelectBtn");
 
 const GRID_SIZE = 10;
@@ -40,6 +40,7 @@ let gameOver = false;
 let actions = [];
 let attackerPositions = {}; // To track last 3 positions of each attacker
 const MAX_POSITION_HISTORY = 3;
+let showPaths = false; // Paths hidden by default
 
 function createEmptyBoard() {
   let arr = [];
@@ -118,6 +119,14 @@ function generateSmoothManhattanCurvePath(r0, c0, r1, c1) {
   return unique;
 }
 
+function nearestDefender(spawn) {
+  let def1 = [8, 2],
+    def2 = [7, 7];
+  let dist1 = Math.abs(def1[0] - spawn[0]) + Math.abs(def1[1] - spawn[1]);
+  let dist2 = Math.abs(def2[0] - spawn[0]) + Math.abs(def2[1] - spawn[1]);
+  return dist1 <= dist2 ? def1 : def2;
+}
+
 function placeAttackers() {
   attackers = [];
   let usedCols = [];
@@ -138,10 +147,14 @@ function placeAttackers() {
     let chosenTarget = defenders[i];
     let pathType = Math.random() < 0.5 ? "straight" : "curve";
     let speed = Math.random() < 0.5 ? 1 : 2;
-    let fullPath = pathType === "straight"
-      ? generateManhattanPath(spawn[0], spawn[1], chosenTarget[0], chosenTarget[1])
-      : generateSmoothManhattanCurvePath(spawn[0], spawn[1], chosenTarget[0], chosenTarget[1]);
-    if (fullPath[fullPath.length - 1][0] !== chosenTarget[0] || fullPath[fullPath.length - 1][1] !== chosenTarget[1]) {
+    let fullPath =
+      pathType === "straight"
+        ? generateManhattanPath(spawn[0], spawn[1], chosenTarget[0], chosenTarget[1])
+        : generateSmoothManhattanCurvePath(spawn[0], spawn[1], chosenTarget[0], chosenTarget[1]);
+    if (
+      fullPath[fullPath.length - 1][0] !== chosenTarget[0] ||
+      fullPath[fullPath.length - 1][1] !== chosenTarget[1]
+    ) {
       fullPath.push(chosenTarget);
     }
     let steppedPath = [fullPath[0]];
@@ -168,10 +181,14 @@ function placeAttackers() {
     let chosenTarget = defenders[Math.floor(Math.random() * defenders.length)];
     let pathType = Math.random() < 0.5 ? "straight" : "curve";
     let speed = Math.random() < 0.5 ? 1 : 2;
-    let fullPath = pathType === "straight"
-      ? generateManhattanPath(spawn[0], spawn[1], chosenTarget[0], chosenTarget[1])
-      : generateSmoothManhattanCurvePath(spawn[0], spawn[1], chosenTarget[0], chosenTarget[1]);
-    if (fullPath[fullPath.length - 1][0] !== chosenTarget[0] || fullPath[fullPath.length - 1][1] !== chosenTarget[1]) {
+    let fullPath =
+      pathType === "straight"
+        ? generateManhattanPath(spawn[0], spawn[1], chosenTarget[0], chosenTarget[1])
+        : generateSmoothManhattanCurvePath(spawn[0], spawn[1], chosenTarget[0], chosenTarget[1]);
+    if (
+      fullPath[fullPath.length - 1][0] !== chosenTarget[0] ||
+      fullPath[fullPath.length - 1][1] !== chosenTarget[1]
+    ) {
       fullPath.push(chosenTarget);
     }
     let steppedPath = [fullPath[0]];
@@ -207,42 +224,44 @@ function countDefenders() {
 function drawBoard(boardArr) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  // Draw column labels (A-J)
+  // Draw grid with labels
   ctx.font = "14px Arial";
   ctx.fillStyle = "black";
   ctx.textAlign = "center";
   for (let c = 0; c < GRID_SIZE; c++) {
-    ctx.fillText(String.fromCharCode(65 + c), (c * CELL_SIZE) + (CELL_SIZE / 2), 15);
+    ctx.fillText(String.fromCharCode(65 + c), (c * CELL_SIZE) + 25 + (CELL_SIZE / 2), 15);
   }
-  
-  // Draw row labels (1-10)
   ctx.textAlign = "right";
   for (let r = 0; r < GRID_SIZE; r++) {
-    ctx.fillText((r + 1).toString(), 20, (r * CELL_SIZE) + (CELL_SIZE / 2) + 5);
+    ctx.fillText((r + 1).toString(), 20, (r * CELL_SIZE) + 20 + (CELL_SIZE / 2) + 5);
   }
   
-  // Draw grid and pieces
+  // Draw board pieces
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
       ctx.strokeStyle = "black";
       ctx.strokeRect(c * CELL_SIZE + 25, r * CELL_SIZE + 20, CELL_SIZE, CELL_SIZE);
       let val = boardArr[r][c];
       if (val === 1) {
-        if (defenderImg) ctx.drawImage(defenderImg, c * CELL_SIZE + 30, r * CELL_SIZE + 25, CELL_SIZE - 10, CELL_SIZE - 10);
+        if (defenderImg)
+          ctx.drawImage(defenderImg, c * CELL_SIZE + 30, r * CELL_SIZE + 25, CELL_SIZE - 10, CELL_SIZE - 10);
       }
     }
   }
   
+  // Draw shot tiles
   for (let tile of shotTiles) {
     ctx.fillStyle = "rgba(255,0,0,0.3)";
     ctx.fillRect(tile[1] * CELL_SIZE + 25, tile[0] * CELL_SIZE + 20, CELL_SIZE, CELL_SIZE);
   }
   
+  // Draw hovered cell if no shots selected
   if (!shotTiles.length && hoveredCell) {
     ctx.fillStyle = "rgba(0,255,0,0.3)";
     ctx.fillRect(hoveredCell[1] * CELL_SIZE + 25, hoveredCell[0] * CELL_SIZE + 20, CELL_SIZE, CELL_SIZE);
   }
 }
+
 function drawPaths() {
   for (let atk of attackers) {
     ctx.setLineDash([5, 5]);
@@ -259,7 +278,6 @@ function drawPaths() {
     }
     ctx.stroke();
   }
-  
   ctx.setLineDash([]);
   ctx.font = "16px Arial";
   ctx.fillStyle = "black";
@@ -275,14 +293,21 @@ function drawPaths() {
   }
 }
 
-// Add a new function to draw just the attackers
 function drawAttackers() {
   for (let atk of attackers) {
     let cr = atk.steppedPath[atk.currentIndex][0];
     let cc = atk.steppedPath[atk.currentIndex][1];
-    if (attackerImg) ctx.drawImage(attackerImg, (cc * CELL_SIZE) + 30, (cr * CELL_SIZE) + 25, CELL_SIZE - 10, CELL_SIZE - 10);
+    if (attackerImg)
+      ctx.drawImage(attackerImg, (cc * CELL_SIZE) + 30, (cr * CELL_SIZE) + 25, CELL_SIZE - 10, CELL_SIZE - 10);
   }
 }
+
+function drawBoardAndPaths() {
+  drawBoard(board);
+  drawAttackers();
+  if (showPaths) drawPaths();
+}
+
 function newGame() {
   gameOver = false;
   statusMessage.textContent = "";
@@ -310,13 +335,6 @@ function endGame(reason) {
   statusMessage.textContent = reason;
   actions.push("Game ended: " + reason);
   updateActionLog();
-}
-function drawBoardAndPaths() {
-  drawBoard(board);
-  drawAttackers(); // Always draw attackers
-  if (!hidePathsCheckbox.checked) {
-    drawPaths(); // Only draw paths if checkbox isn't checked
-  }
 }
 
 function redirectAttackers(destroyedDefender) {
@@ -431,7 +449,6 @@ function nextTurn() {
   if (shotTiles.length === 0) {
     autoSelectShots();
   }
-  
   actions.push("Turn advanced");
   let remainingAttackers = [];
   for (let atk of attackers) {
@@ -446,7 +463,7 @@ function nextTurn() {
         continue;
       } else {
         atk.currentIndex = nextIndex;
-        if (atk.currentIndex === atk.steppedPath.length - 1) {
+        if (atk.currentIndex === atk.steppedPath.length - 1 || (atk.speed === 2 && atk.currentIndex === atk.steppedPath.length - 2)) {
           board[atk.baseTarget[0]][atk.baseTarget[1]] = 0;
           actions.push("Attacker " + atk.id + " reached and destroyed defender at " + 
             String.fromCharCode(65 + atk.baseTarget[1]) + (atk.baseTarget[0] + 1) + 
@@ -466,20 +483,57 @@ function nextTurn() {
       // Don't add to remainingAttackers since attacker is destroyed
     }
   }
-  
   attackers = remainingAttackers;
   shotTiles = [];
   drawBoardAndPaths();
-  
   if (attackers.length === 0) {
-    endGame("All attackers eliminated - Defenders win!");
-  } else if (countDefenders() === 0) {
-    endGame("All defenders destroyed - Attackers win!");
+    if (countDefenders() > 0) endGame("All attackers eliminated - Defenders win!");
+    else endGame("All defenders destroyed - Attackers win!");
   }
   updateActionLog();
 }
 function updateActionLog() {
   actionLog.innerHTML = actions.map(action => "<li>" + action + "</li>").join("");
+}
+
+function drawBoardAndPaths() {
+  drawBoard(board);
+  drawAttackers();
+  if (showPaths) drawPaths();
+}
+
+function drawAttackers() {
+  for (let atk of attackers) {
+    let cr = atk.steppedPath[atk.currentIndex][0];
+    let cc = atk.steppedPath[atk.currentIndex][1];
+    if (attackerImg) ctx.drawImage(attackerImg, (cc * CELL_SIZE) + 30, (cr * CELL_SIZE) + 25, CELL_SIZE - 10, CELL_SIZE - 10);
+  }
+}
+
+function newGame() {
+  gameOver = false;
+  statusMessage.textContent = "";
+  nextTurnBtn.disabled = false;
+  showPaths = false;
+  board = createEmptyBoard();
+  placeDefenders(board);
+  placeAttackers();
+  shotTiles = [];
+  hoveredCell = null;
+  actions = [];
+  updateActionLog();
+  for (let atk of attackers) { atk.currentIndex = 0; }
+  trainingData.push(JSON.parse(JSON.stringify(board)));
+  drawBoardAndPaths();
+}
+
+
+function endGame(reason) {
+  gameOver = true;
+  nextTurnBtn.disabled = true;
+  statusMessage.textContent = reason;
+  actions.push("Game ended: " + reason);
+  updateActionLog();
 }
 
 canvas.addEventListener("mousemove", function(e) {
@@ -489,11 +543,8 @@ canvas.addEventListener("mousemove", function(e) {
   let y = e.clientY - rect.top;
   let col = Math.floor((x - 25) / CELL_SIZE);
   let row = Math.floor((y - 20) / CELL_SIZE);
-  if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
-    hoveredCell = [row, col];
-  } else {
-    hoveredCell = null;
-  }
+  if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) hoveredCell = [row, col];
+  else hoveredCell = null;
   drawBoardAndPaths();
 });
 
@@ -504,7 +555,6 @@ canvas.addEventListener("click", function(e) {
   let y = e.clientY - rect.top;
   let col = Math.floor((x - 25) / CELL_SIZE);
   let row = Math.floor((y - 20) / CELL_SIZE);
-  
   if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
     hoveredCell = [row, col];
     if (board[hoveredCell[0]][hoveredCell[1]] === 1) return;
@@ -512,26 +562,14 @@ canvas.addEventListener("click", function(e) {
       let current = atk.steppedPath[atk.currentIndex];
       if (current[0] === hoveredCell[0] && current[1] === hoveredCell[1]) return;
     }
-    
-    let alreadySelected = shotTiles.some(tile => 
-      tile[0] === hoveredCell[0] && tile[1] === hoveredCell[1]
-    );
-    
-    if (alreadySelected) {
-      shotTiles = shotTiles.filter(tile => 
-        !(tile[0] === hoveredCell[0] && tile[1] === hoveredCell[1])
-      );
-      actions.push("Removed shot at " + String.fromCharCode(65 + hoveredCell[0]) + (hoveredCell[1] + 1));
+    let defendersAlive = countDefenders();
+    if (shotTiles.length < defendersAlive) {
+      shotTiles.push(hoveredCell);
+      actions.push("Selected shot at " + String.fromCharCode(65 + hoveredCell[0]) + (hoveredCell[1] + 1));
     } else {
-      let defendersAlive = countDefenders();
-      if (shotTiles.length < defendersAlive) {
-        shotTiles.push(hoveredCell);
-        actions.push("Selected shot at " + String.fromCharCode(65 + hoveredCell[0]) + (hoveredCell[1] + 1));
-      } else {
-        shotTiles.shift();
-        shotTiles.push(hoveredCell);
-        actions.push("Replaced shot with " + String.fromCharCode(65 + hoveredCell[0]) + (hoveredCell[1] + 1));
-      }
+      shotTiles.shift();
+      shotTiles.push(hoveredCell);
+      actions.push("Replaced shot with " + String.fromCharCode(65 + hoveredCell[0]) + (hoveredCell[1] + 1));
     }
     updateActionLog();
     drawBoardAndPaths();
@@ -543,6 +581,7 @@ nextTurnBtn.addEventListener("click", nextTurn);
 actionLogBtn.addEventListener("click", function() {
   actionLog.style.display = actionLog.style.display === "none" ? "block" : "none";
 });
-hidePathsCheckbox.addEventListener("change", function() {
+togglePathsBtn.addEventListener("click", function() {
+  showPaths = !showPaths;
   drawBoardAndPaths();
 });
