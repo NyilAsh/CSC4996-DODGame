@@ -8,20 +8,42 @@
       flex-direction: column;
       align-items: center;
       margin-top: 30px;
+      font-family: Arial, sans-serif;
     }
     #gameCanvas {
       border: 1px solid black;
       margin-bottom: 10px;
     }
+    #actionLog {
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      width: 300px;
+      margin-top: 10px;
+      background-color: #f9f9f9;
+    }
+    .controls {
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 8px 12px;
+      margin: 0 5px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="500" height="500"></canvas>
-  <div>
+  <canvas id="gameCanvas" width="550" height="550"></canvas>
+  <div class="controls">
     <button id="newGameBtn">New Game</button>
     <button id="nextTurnBtn">Next Turn</button>
+    <button id="actionLogBtn">Action Log</button>
+    <button id="togglePathsBtn">Toggle Attacker Paths</button>
     <p id="statusMessage"></p>
   </div>
+  <ul id="actionLog"></ul>
   <script src="game.js"></script>
 </body>
 </html>
