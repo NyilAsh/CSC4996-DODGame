@@ -8,14 +8,18 @@
       flex-direction: column;
       align-items: center;
       margin-top: 30px;
+<<<<<<< HEAD
       background-color: #1a1a1a;
       color: white;
+=======
+>>>>>>> bf6ea03dcc66b4a73f537cd7214fa08b687fa63d
       font-family: Arial, sans-serif;
     }
     #gameCanvas {
       border: 1px solid #333;
       margin-bottom: 10px;
     }
+<<<<<<< HEAD
     .controls {
       display: flex;
       gap: 10px;
@@ -128,10 +132,30 @@
     }
     #instructionsPanel.visible {
       display: block;
+=======
+    #actionLog {
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      width: 300px;
+      margin-top: 10px;
+      background-color: #f9f9f9;
+    }
+    .controls {
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 8px 12px;
+      margin: 0 5px;
+      cursor: pointer;
+>>>>>>> bf6ea03dcc66b4a73f537cd7214fa08b687fa63d
     }
   </style>
 </head>
 <body>
+<<<<<<< HEAD
   <div class="tab-container">
     <button id="newGameBtn">New Game</button>
     <button id="instructionsBtn">Instructions</button>
@@ -199,6 +223,18 @@
     </div>
   </div>
 
+=======
+  <canvas id="gameCanvas" width="550" height="550"></canvas>
+  <div class="controls">
+    <button id="newGameBtn">New Game</button>
+    <button id="nextTurnBtn">Next Turn</button>
+    <button id="autoSelectBtn">Auto Select Shots</button>
+    <button id="actionLogBtn">Action Log</button>
+    <button id="togglePathsBtn">Toggle Attacker Paths</button>
+    <p id="statusMessage"></p>
+  </div>
+  <ul id="actionLog"></ul>
+>>>>>>> bf6ea03dcc66b4a73f537cd7214fa08b687fa63d
   <script src="game.js"></script>
 </body>
 </html>
