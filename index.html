@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -32,6 +33,9 @@
       margin: 0 5px;
       cursor: pointer;
     }
+    .checkbox-container {
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -40,6 +44,10 @@
     <button id="newGameBtn">New Game</button>
     <button id="nextTurnBtn">Next Turn</button>
     <button id="actionLogBtn">Action Log</button>
+    <div class="checkbox-container">
+      <input type="checkbox" id="hidePathsCheckbox">
+      <label for="hidePathsCheckbox">Hide Attacker Paths</label>
+    </div>
     <p id="statusMessage"></p>
   </div>
   <ul id="actionLog"></ul>

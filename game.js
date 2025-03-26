@@ -26,6 +26,8 @@ const nextTurnBtn = document.getElementById("nextTurnBtn");
 const actionLogBtn = document.getElementById("actionLogBtn");
 const statusMessage = document.getElementById("statusMessage");
 const actionLog = document.getElementById("actionLog");
+const hidePathsCheckbox = document.getElementById("hidePathsCheckbox");
+
 const GRID_SIZE = 10;
 const CELL_SIZE = 50;
 let board = [];
@@ -238,7 +240,6 @@ function drawBoard(boardArr) {
     ctx.fillRect(hoveredCell[1] * CELL_SIZE + 25, hoveredCell[0] * CELL_SIZE + 20, CELL_SIZE, CELL_SIZE);
   }
 }
-
 function drawPaths() {
   for (let atk of attackers) {
     ctx.setLineDash([5, 5]);
@@ -268,17 +269,17 @@ function drawPaths() {
       let y = (pr * CELL_SIZE) + 20 + (CELL_SIZE / 2) + 5;
       ctx.fillText(i.toString(), x, y);
     }
+  }
+}
+
+// Add a new function to draw just the attackers
+function drawAttackers() {
+  for (let atk of attackers) {
     let cr = atk.steppedPath[atk.currentIndex][0];
     let cc = atk.steppedPath[atk.currentIndex][1];
     if (attackerImg) ctx.drawImage(attackerImg, (cc * CELL_SIZE) + 30, (cr * CELL_SIZE) + 25, CELL_SIZE - 10, CELL_SIZE - 10);
   }
 }
-
-function drawBoardAndPaths() {
-  drawBoard(board);
-  drawPaths();
-}
-
 function newGame() {
   gameOver = false;
   statusMessage.textContent = "";
@@ -301,6 +302,13 @@ function endGame(reason) {
   statusMessage.textContent = reason;
   actions.push("Game ended: " + reason);
   updateActionLog();
+}
+function drawBoardAndPaths() {
+  drawBoard(board);
+  drawAttackers(); // Always draw attackers
+  if (!hidePathsCheckbox.checked) {
+    drawPaths(); // Only draw paths if checkbox isn't checked
+  }
 }
 
 function redirectAttackers(destroyedDefender) {
@@ -457,4 +465,7 @@ newGameBtn.addEventListener("click", newGame);
 nextTurnBtn.addEventListener("click", nextTurn);
 actionLogBtn.addEventListener("click", function() {
   actionLog.style.display = actionLog.style.display === "none" ? "block" : "none";
+});
+hidePathsCheckbox.addEventListener("change", function() {
+  drawBoardAndPaths();
 });
