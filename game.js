@@ -27,6 +27,7 @@ const actionLogBtn = document.getElementById("actionLogBtn");
 const statusMessage = document.getElementById("statusMessage");
 const actionLog = document.getElementById("actionLog");
 const hidePathsCheckbox = document.getElementById("hidePathsCheckbox");
+const autoSelectBtn = document.getElementById("autoSelectBtn");
 
 const GRID_SIZE = 10;
 const CELL_SIZE = 50;
@@ -37,6 +38,8 @@ let hoveredCell = null;
 let shotTiles = [];
 let gameOver = false;
 let actions = [];
+let attackerPositions = {}; // To track last 3 positions of each attacker
+const MAX_POSITION_HISTORY = 3;
 
 function createEmptyBoard() {
   let arr = [];
@@ -290,8 +293,13 @@ function newGame() {
   shotTiles = [];
   hoveredCell = null;
   actions = [];
+  attackerPositions = {}; // Reset position tracking
   updateActionLog();
-  for (let atk of attackers) { atk.currentIndex = 0; }
+  for (let atk of attackers) { 
+    atk.currentIndex = 0; 
+    attackerPositions[atk.id] = []; // Initialize position history for each attacker
+    recordAttackerPosition(atk); // Record initial position
+  }
   trainingData.push(JSON.parse(JSON.stringify(board)));
   drawBoardAndPaths();
 }
@@ -357,9 +365,72 @@ function redirectAttackers(destroyedDefender) {
     }
   }
 }
+function recordAttackerPosition(attacker) {
+  let currentPos = attacker.steppedPath[attacker.currentIndex];
+  if (!attackerPositions[attacker.id]) {
+    attackerPositions[attacker.id] = [];
+  }
+  // Add current position to history
+  attackerPositions[attacker.id].unshift([currentPos[0], currentPos[1]]);
+  // Keep only the last MAX_POSITION_HISTORY positions
+  if (attackerPositions[attacker.id].length > MAX_POSITION_HISTORY) {
+    attackerPositions[attacker.id].pop();
+  }
+}
 
+function autoSelectShots() {
+  if (shotTiles.length > 0 || attackers.length === 0) return;
+
+  // Add some randomness - only activate auto-select 80% of the time
+  if (Math.random() < 0.2) return;
+
+  // Instead of picking the closest attacker, pick a random one
+  let randomAttacker = attackers[Math.floor(Math.random() * attackers.length)];
+  
+  if (!randomAttacker) return;
+
+  // Get last positions (but we'll use less information)
+  let positions = attackerPositions[randomAttacker.id];
+  if (!positions || positions.length === 0) return;
+
+  // Less accurate prediction - only look at current position
+  let currentPos = randomAttacker.steppedPath[randomAttacker.currentIndex];
+  
+  // Add random offset to make shots less accurate
+  let rowOffset = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+  let colOffset = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+  
+  let predictedPos = [
+    Math.max(0, Math.min(GRID_SIZE - 1, currentPos[0] + rowOffset)),
+    Math.max(0, Math.min(GRID_SIZE - 1, currentPos[1] + colOffset))
+  ];
+  
+  // Don't shoot defender positions
+  if (board[predictedPos[0]][predictedPos[1]] !== 1) {
+    shotTiles.push([predictedPos[0], predictedPos[1]]);
+    actions.push("Auto-selected random shot near attacker at " + 
+      String.fromCharCode(65 + predictedPos[1]) + (predictedPos[0] + 1));
+  }
+  
+  // If we still haven't selected a shot (due to randomness), just pick current position
+  if (shotTiles.length === 0 && board[currentPos[0]][currentPos[1]] !== 1) {
+    shotTiles.push([currentPos[0], currentPos[1]]);
+    actions.push("Auto-selected current position: " + 
+      String.fromCharCode(65 + currentPos[1]) + (currentPos[0] + 1));
+  }
+} 
 function nextTurn() {
   if (gameOver) return;
+  
+  // Record current positions before moving
+  for (let atk of attackers) {
+    recordAttackerPosition(atk);
+  }
+
+  // Auto-select shots if none selected
+  if (shotTiles.length === 0) {
+    autoSelectShots();
+  }
   
   actions.push("Turn advanced");
   let remainingAttackers = [];
@@ -371,21 +442,28 @@ function nextTurn() {
         (tile) => tile[0] === nextTile[0] && tile[1] === nextTile[1]
       );
       if (shotHit) {
-        actions.push("Attacker " + atk.id + " was hit at " + String.fromCharCode(65 + nextTile[0]) + (nextTile[1] + 1));
+        actions.push("Attacker " + atk.id + " was hit at " + String.fromCharCode(65 + nextTile[1]) + (nextTile[0] + 1));
         continue;
       } else {
         atk.currentIndex = nextIndex;
         if (atk.currentIndex === atk.steppedPath.length - 1) {
           board[atk.baseTarget[0]][atk.baseTarget[1]] = 0;
-          actions.push("Attacker " + atk.id + " reached defender at " + String.fromCharCode(65 + atk.baseTarget[0]) + (atk.baseTarget[1] + 1));
+          actions.push("Attacker " + atk.id + " reached and destroyed defender at " + 
+            String.fromCharCode(65 + atk.baseTarget[1]) + (atk.baseTarget[0] + 1) + 
+            " and was destroyed in the process");
+          // Attacker is destroyed when they kill a defender
           redirectAttackers(atk.baseTarget);
+          continue; // Skip adding to remainingAttackers
         }
         remainingAttackers.push(atk);
       }
     } else {
       board[atk.baseTarget[0]][atk.baseTarget[1]] = 0;
-      actions.push("Attacker " + atk.id + " destroyed defender at " + String.fromCharCode(65 + atk.baseTarget[0]) + (atk.baseTarget[1] + 1));
+      actions.push("Attacker " + atk.id + " destroyed defender at " + 
+        String.fromCharCode(65 + atk.baseTarget[1]) + (atk.baseTarget[0] + 1) + 
+        " and was destroyed in the process");
       redirectAttackers(atk.baseTarget);
+      // Don't add to remainingAttackers since attacker is destroyed
     }
   }
   
@@ -400,7 +478,6 @@ function nextTurn() {
   }
   updateActionLog();
 }
-
 function updateActionLog() {
   actionLog.innerHTML = actions.map(action => "<li>" + action + "</li>").join("");
 }
