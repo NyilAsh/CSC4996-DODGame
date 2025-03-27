@@ -720,48 +720,125 @@ function recordAttackerPosition(attacker) {
     attackerPositions[attacker.id].pop();
   }
 }
-
 function autoSelectShots() {
-  if (shotTiles.length > 0 || attackers.length === 0) return;
+  if (shotTiles.length >= countDefenders() || attackers.length === 0) return;
 
-  // Add some randomness - only activate auto-select 80% of the time
-  if (Math.random() < 0.2) return;
+  // Find all attackers that have moved at least once
+  let validAttackers = attackers.filter(atk => 
+    attackerPositions[atk.id] && attackerPositions[atk.id].length > 0
+  );
 
-  // Instead of picking the closest attacker, pick a random one
-  let randomAttacker = attackers[Math.floor(Math.random() * attackers.length)];
-  
-  if (!randomAttacker) return;
+  if (validAttackers.length === 0) {
+    // If no attackers have moved, pick random empty positions
+    let emptyCells = [];
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        if (board[r][c] !== 1 && !attackers.some(a => {
+          let pos = a.steppedPath[a.currentIndex];
+          return pos[0] === r && pos[1] === c;
+        })) {
+          emptyCells.push([r, c]);
+        }
+      }
+    }
+    if (emptyCells.length > 0) {
+      let randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      shotTiles.push(randomCell);
+      actions.push("Auto-selected random shot at " + 
+        String.fromCharCode(65 + randomCell[1]) + (randomCell[0] + 1));
+    }
+    return;
+  }
 
-  // Get last positions (but we'll use less information)
-  let positions = attackerPositions[randomAttacker.id];
-  if (!positions || positions.length === 0) return;
+  // Sort attackers by proximity to defenders
+  validAttackers.sort((a, b) => {
+    let aPos = a.steppedPath[a.currentIndex];
+    let bPos = b.steppedPath[b.currentIndex];
+    let aDist = Infinity, bDist = Infinity;
+    
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        if (board[r][c] === 1) {
+          aDist = Math.min(aDist, Math.abs(aPos[0] - r) + Math.abs(aPos[1] - c));
+          bDist = Math.min(bDist, Math.abs(bPos[0] - r) + Math.abs(bPos[1] - c));
+        }
+      }
+    }
+    return aDist - bDist;
+  });
 
-  // Less accurate prediction - only look at current position
-  let currentPos = randomAttacker.steppedPath[randomAttacker.currentIndex];
-  
-  // Add random offset to make shots less accurate
-  let rowOffset = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
-  let colOffset = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
-  
-  let predictedPos = [
-    Math.max(0, Math.min(GRID_SIZE - 1, currentPos[0] + rowOffset)),
-    Math.max(0, Math.min(GRID_SIZE - 1, currentPos[1] + colOffset))
-  ];
-  
-  // Don't shoot defender positions
-  if (board[predictedPos[0]][predictedPos[1]] !== 1) {
-    shotTiles.push([predictedPos[0], predictedPos[1]]);
-    actions.push("Auto-selected random shot near attacker at " + 
-      String.fromCharCode(65 + predictedPos[1]) + (predictedPos[0] + 1));
+  // Try to predict positions for each attacker until we find a valid shot
+  for (let atk of validAttackers) {
+    let positions = attackerPositions[atk.id];
+    let predictedPos;
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    do {
+      if (positions.length >= 2) {
+        // Calculate movement direction
+        let dr = positions[0][0] - positions[1][0];
+        let dc = positions[0][1] - positions[1][1];
+        
+        // Predict next position (50% chance to add small error)
+        predictedPos = [
+          positions[0][0] + dr,
+          positions[0][1] + dc
+        ];
+        
+        if (Math.random() < 0.9){
+          predictedPos[0] += Math.floor(Math.random() * 3) - 1;
+          predictedPos[1] += Math.floor(Math.random() * 3) - 1;
+        }
+      } else {
+        // Fallback to current position with random offset
+        predictedPos = atk.steppedPath[atk.currentIndex];
+        predictedPos[0] += Math.floor(Math.random() * 3) - 1;
+        predictedPos[1] += Math.floor(Math.random() * 3) - 1;
+      }
+      
+      // Clamp to grid bounds
+      predictedPos[0] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[0]));
+      predictedPos[1] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[1]));
+      
+      // Check if position is valid
+      const isValid = board[predictedPos[0]][predictedPos[1]] !== 1 && 
+                     !shotTiles.some(t => t[0] === predictedPos[0] && t[1] === predictedPos[1]) &&
+                     !attackers.some(a => {
+                       let pos = a.steppedPath[a.currentIndex];
+                       return pos[0] === predictedPos[0] && pos[1] === predictedPos[1];
+                     });
+      
+      if (isValid) {
+        shotTiles.push([predictedPos[0], predictedPos[1]]);
+        actions.push("Auto-selected shot targeting attacker " + atk.id + 
+          " at " + String.fromCharCode(65 + predictedPos[1]) + (predictedPos[0] + 1));
+        return;
+      }
+      
+      attempts++;
+    } while (attempts < maxAttempts);
   }
   
-  // If we still haven't selected a shot (due to randomness), just pick current position
-  if (shotTiles.length === 0 && board[currentPos[0]][currentPos[1]] !== 1) {
-    shotTiles.push([currentPos[0], currentPos[1]]);
-    actions.push("Auto-selected current position: " + 
-      String.fromCharCode(65 + currentPos[1]) + (currentPos[0] + 1));
+  // If all else fails, pick a random empty position
+  let emptyCells = [];
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      if (board[r][c] !== 1 && !attackers.some(a => {
+        let pos = a.steppedPath[a.currentIndex];
+        return pos[0] === r && pos[1] === c;
+      })) {
+        emptyCells.push([r, c]);
+      }
+    }
   }
-} 
+  if (emptyCells.length > 0) {
+    let randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+    shotTiles.push(randomCell);
+    actions.push("Auto-selected random shot at " + 
+      String.fromCharCode(65 + randomCell[1]) + (randomCell[0] + 1));
+  }
+}
 function nextTurn() {
 <<<<<<< HEAD
   if (isDefenderTurn) {
@@ -1030,4 +1107,49 @@ togglePathsBtn.addEventListener("click", function() {
   showPaths = !showPaths;
   drawBoardAndPaths();
 });
+<<<<<<< HEAD
 >>>>>>> bf6ea03dcc66b4a73f537cd7214fa08b687fa63d
+=======
+autoSelectBtn.addEventListener("click", function() {
+  if (gameOver) return;
+  
+  // Clear existing auto-selected shots (keep manually selected ones)
+  shotTiles = shotTiles.filter(tile => {
+    // Check if this tile was manually selected (not in action log as auto-selected)
+    return !actions.some(action => 
+      action.includes("Auto-selected shot at") && 
+      action.includes(String.fromCharCode(65 + tile[1]) + (tile[0] + 1)
+    ))
+  });
+  
+  // Calculate how many shots we need to select
+  const defendersAlive = countDefenders();
+  const shotsToSelect = defendersAlive - shotTiles.length;
+  
+  if (shotsToSelect <= 0) return;
+  
+  // Use our existing algorithm to select the needed shots
+  for (let i = 0; i < shotsToSelect; i++) {
+    autoSelectShots();
+  }
+  
+  updateActionLog();
+  drawBoardAndPaths();
+});
+autoSelectBtn.addEventListener("click", function() {
+  if (gameOver) return;
+  
+  const defendersAlive = countDefenders();
+  
+  // Clear all existing shots
+  shotTiles = [];
+  
+  // Select shots equal to number of living defenders
+  for (let i = 0; i < defendersAlive; i++) {
+    autoSelectShots();
+  }
+  
+  updateActionLog();
+  drawBoardAndPaths();
+});
+>>>>>>> c7c94b3ef9df79a4868c612c92749fd39f501c3e
