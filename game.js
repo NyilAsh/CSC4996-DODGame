@@ -395,48 +395,103 @@ function recordAttackerPosition(attacker) {
     attackerPositions[attacker.id].pop();
   }
 }
-
 function autoSelectShots() {
   if (shotTiles.length > 0 || attackers.length === 0) return;
 
-  // Add some randomness - only activate auto-select 80% of the time
-  if (Math.random() < 0.2) return;
+  // Find the closest attacker to any defender (original logic)
+  let closestAttacker = null;
+  let minDistance = Infinity;
 
-  // Instead of picking the closest attacker, pick a random one
-  let randomAttacker = attackers[Math.floor(Math.random() * attackers.length)];
-  
-  if (!randomAttacker) return;
+  for (let atk of attackers) {
+    if (!attackerPositions[atk.id] || attackerPositions[atk.id].length === 0) continue;
+    
+    let currentPos = atk.steppedPath[atk.currentIndex];
+    
+    // Check distance to each defender
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        if (board[r][c] === 1) {
+          let distance = Math.abs(currentPos[0] - r) + Math.abs(currentPos[1] - c);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestAttacker = atk;
+          }
+        }
+      }
+    }
+  }
 
-  // Get last positions (but we'll use less information)
-  let positions = attackerPositions[randomAttacker.id];
+  if (!closestAttacker) return;
+
+  // Get last 3 positions of the closest attacker
+  let positions = attackerPositions[closestAttacker.id];
   if (!positions || positions.length === 0) return;
 
-  // Less accurate prediction - only look at current position
-  let currentPos = randomAttacker.steppedPath[randomAttacker.currentIndex];
-  
-  // Add random offset to make shots less accurate
-  let rowOffset = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
-  let colOffset = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
-  
-  let predictedPos = [
-    Math.max(0, Math.min(GRID_SIZE - 1, currentPos[0] + rowOffset)),
-    Math.max(0, Math.min(GRID_SIZE - 1, currentPos[1] + colOffset))
-  ];
-  
-  // Don't shoot defender positions
-  if (board[predictedPos[0]][predictedPos[1]] !== 1) {
-    shotTiles.push([predictedPos[0], predictedPos[1]]);
-    actions.push("Auto-selected random shot near attacker at " + 
-      String.fromCharCode(65 + predictedPos[1]) + (predictedPos[0] + 1));
+  // Predict next position based on movement pattern (original logic)
+  let predictedPos;
+  if (positions.length >= 2) {
+    // Calculate movement vector from last 2 positions
+    let dr = positions[0][0] - positions[1][0];
+    let dc = positions[0][1] - positions[1][1];
+    
+    // Predict next position by continuing the movement
+    predictedPos = [
+      positions[0][0] + dr,
+      positions[0][1] + dc
+    ];
+    
+    // 50% chance to offset the prediction by 1 in a random direction
+    if (Math.random() < 0.5) {
+      const directions = [
+        [0, 1], [1, 0], [0, -1], [-1, 0] // right, down, left, up
+      ];
+      const randomDir = directions[Math.floor(Math.random() * directions.length)];
+      predictedPos[0] += randomDir[0];
+      predictedPos[1] += randomDir[1];
+    }
+    
+    // Ensure predicted position is within bounds
+    predictedPos[0] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[0]));
+    predictedPos[1] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[1]));
+    
+    // Don't shoot defender positions
+    if (board[predictedPos[0]][predictedPos[1]] !== 1) {
+      shotTiles.push([predictedPos[0], predictedPos[1]]);
+      actions.push("Auto-selected shot at " + 
+        String.fromCharCode(65 + predictedPos[1]) + (predictedPos[0] + 1) + 
+        (predictedPos[0] !== positions[0][0] + dr || predictedPos[1] !== positions[0][1] + dc ? 
+        " (offset)" : ""));
+    }
   }
   
-  // If we still haven't selected a shot (due to randomness), just pick current position
-  if (shotTiles.length === 0 && board[currentPos[0]][currentPos[1]] !== 1) {
-    shotTiles.push([currentPos[0], currentPos[1]]);
-    actions.push("Auto-selected current position: " + 
-      String.fromCharCode(65 + currentPos[1]) + (currentPos[0] + 1));
+  // Fallback to current position if prediction failed (with 50% offset chance)
+  if (shotTiles.length === 0) {
+    let currentPos = closestAttacker.steppedPath[closestAttacker.currentIndex];
+    predictedPos = [currentPos[0], currentPos[1]];
+    
+    // 50% chance to offset current position
+    if (Math.random() < 0.5) {
+      const directions = [
+        [0, 1], [1, 0], [0, -1], [-1, 0]
+      ];
+      const randomDir = directions[Math.floor(Math.random() * directions.length)];
+      predictedPos[0] += randomDir[0];
+      predictedPos[1] += randomDir[1];
+      
+      // Re-clamp values
+      predictedPos[0] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[0]));
+      predictedPos[1] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[1]));
+    }
+    
+    if (board[predictedPos[0]][predictedPos[1]] !== 1) {
+      shotTiles.push([predictedPos[0], predictedPos[1]]);
+      actions.push("Auto-selected shot at current position: " + 
+        String.fromCharCode(65 + predictedPos[1]) + (predictedPos[0] + 1) +
+        (predictedPos[0] !== currentPos[0] || predictedPos[1] !== currentPos[1] ?
+        " (offset)" : ""));
+    }
   }
-} 
+}
 function nextTurn() {
   if (gameOver) return;
   
