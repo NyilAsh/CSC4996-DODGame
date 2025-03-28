@@ -28,6 +28,7 @@ const togglePathsBtn = document.getElementById("togglePathsBtn");
 const statusMessage = document.getElementById("statusMessage");
 const actionLog = document.getElementById("actionLog");
 const autoSelectBtn = document.getElementById("autoSelectBtn");
+const generatePredictionsBtn = document.getElementById("generatePredictionsBtn");
 
 const GRID_SIZE = 10;
 const CELL_SIZE = 50;
@@ -224,7 +225,6 @@ function countDefenders() {
 function drawBoard(boardArr) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  // Draw grid with labels
   ctx.font = "14px Arial";
   ctx.fillStyle = "black";
   ctx.textAlign = "center";
@@ -236,7 +236,6 @@ function drawBoard(boardArr) {
     ctx.fillText((r + 1).toString(), 20, (r * CELL_SIZE) + 20 + (CELL_SIZE / 2) + 5);
   }
   
-  // Draw board pieces
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
       ctx.strokeStyle = "black";
@@ -249,13 +248,11 @@ function drawBoard(boardArr) {
     }
   }
   
-  // Draw shot tiles
   for (let tile of shotTiles) {
     ctx.fillStyle = "rgba(255,0,0,0.3)";
     ctx.fillRect(tile[1] * CELL_SIZE + 25, tile[0] * CELL_SIZE + 20, CELL_SIZE, CELL_SIZE);
   }
   
-  // Draw hovered cell if no shots selected
   if (!shotTiles.length && hoveredCell) {
     ctx.fillStyle = "rgba(0,255,0,0.3)";
     ctx.fillRect(hoveredCell[1] * CELL_SIZE + 25, hoveredCell[0] * CELL_SIZE + 20, CELL_SIZE, CELL_SIZE);
@@ -604,7 +601,6 @@ function newGame() {
   drawBoardAndPaths();
 }
 
-
 function endGame(reason) {
   gameOver = true;
   nextTurnBtn.disabled = true;
@@ -704,3 +700,119 @@ autoSelectBtn.addEventListener("click", function() {
   updateActionLog();
   drawBoardAndPaths();
 });
+
+function getCurrentDefenders() {
+    let defenders = [];
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            if (board[r][c] === 1) {
+                defenders.push([r, c]);
+            }
+        }
+    }
+    return defenders;
+}
+
+function drawPredictionCanvas(canvas, board, attackers, defenders, shotTiles, turnOffset = 0) {
+    const ctx = canvas.getContext('2d');
+    const CELL_SIZE = 50;
+    
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(25, 20, 500, 500);
+    
+    ctx.strokeStyle = '#ccc';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= GRID_SIZE; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * CELL_SIZE + 25, 20);
+        ctx.lineTo(i * CELL_SIZE + 25, 520);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(25, i * CELL_SIZE + 20);
+        ctx.lineTo(525, i * CELL_SIZE + 20);
+        ctx.stroke();
+    }
+    
+    ctx.fillStyle = '#666';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    for (let i = 0; i < GRID_SIZE; i++) {
+        ctx.fillText(String.fromCharCode(65 + i), i * CELL_SIZE + 50, 15);
+        ctx.textAlign = 'right';
+        ctx.fillText((i + 1).toString(), 20, i * CELL_SIZE + 45);
+    }
+    
+    defenders.forEach(([r, c]) => {
+        ctx.fillStyle = '#0066cc';
+        ctx.strokeStyle = '#004d99';
+        ctx.lineWidth = 2;
+        ctx.fillRect(c * CELL_SIZE + 30, r * CELL_SIZE + 25, 40, 40);
+        ctx.strokeRect(c * CELL_SIZE + 30, r * CELL_SIZE + 25, 40, 40);
+    });
+    
+    if (shotTiles) {
+        shotTiles.forEach(tile => {
+            const [r, c] = tile;
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 2;
+            ctx.fillRect(c * CELL_SIZE + 25, r * CELL_SIZE + 20, CELL_SIZE, CELL_SIZE);
+            ctx.strokeRect(c * CELL_SIZE + 25, r * CELL_SIZE + 20, CELL_SIZE, CELL_SIZE);
+        });
+    }
+    
+    attackers.forEach(attacker => {
+        let currentIndex = Math.min(
+            attacker.currentIndex + turnOffset,
+            attacker.steppedPath.length - 1
+        );
+        const [r, c] = attacker.steppedPath[currentIndex];
+        
+        ctx.beginPath();
+        ctx.moveTo(c * CELL_SIZE + 45, r * CELL_SIZE + 25);
+        ctx.lineTo(c * CELL_SIZE + 60, r * CELL_SIZE + 35);
+        ctx.lineTo(c * CELL_SIZE + 45, r * CELL_SIZE + 45);
+        ctx.lineTo(c * CELL_SIZE + 30, r * CELL_SIZE + 35);
+        ctx.closePath();
+        
+        ctx.fillStyle = '#ff3333';
+        ctx.fill();
+        ctx.strokeStyle = '#cc0000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    });
+}
+
+// Modify the generatePredictions function
+function generatePredictions() {
+    try {
+        // Create canvases for each prediction state
+        const states = ['current', 'next', 'plus-2', 'plus-3'];
+        const turnOffsets = [0, 1, 2, 3];
+        
+        states.forEach((state, index) => {
+            // Create a temporary canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 550;
+            canvas.height = 550;
+
+            drawPredictionCanvas(canvas, board, attackers, getCurrentDefenders(), shotTiles, turnOffsets[index]);
+            
+            // Convert to image and display
+            const img = document.getElementById(`${state}-state`);
+            if (img) {
+                img.src = canvas.toDataURL();
+            }
+        });
+        
+        statusMessage.textContent = "Predictions generated successfully!";
+    } catch (error) {
+        console.error('Error generating predictions:', error);
+        statusMessage.textContent = "Error generating predictions: " + error.message;
+    }
+}
+
+generatePredictionsBtn.addEventListener('click', generatePredictions);

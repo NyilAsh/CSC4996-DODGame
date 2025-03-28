@@ -9,10 +9,17 @@
       align-items: center;
       margin-top: 30px;
       font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+    #wrapper {
+      display: flex;
+      gap: 30px;
+      align-items: flex-start;
     }
     #gameCanvas {
       border: 1px solid black;
       margin-bottom: 10px;
+      background-color: white;
     }
     #actionLog {
       display: none;
@@ -26,25 +33,100 @@
     }
     .controls {
       margin-bottom: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      justify-content: center;
     }
     button {
       padding: 8px 12px;
       margin: 0 5px;
       cursor: pointer;
+      background-color: #4a4a4a;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #666;
+    }
+    #prediction-container {
+      width: 550px;
+      background-color: white;
+      border: 1px solid black;
+      border-radius: 4px;
+      padding: 20px;
+    }
+    #prediction-container h3 {
+      margin: 0 0 20px 0;
+      text-align: center;
+      font-size: 18px;
+      color: #333;
+    }
+    #predicted-states {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    .state-image {
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+    .state-image h4 {
+      margin: 0 0 10px 0;
+      text-align: center;
+      font-size: 16px;
+      color: #333;
+    }
+    .state-image img {
+      width: 100%;
+      height: auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="550" height="550"></canvas>
-  <div class="controls">
-    <button id="newGameBtn">New Game</button>
-    <button id="nextTurnBtn">Next Turn</button>
-    <button id="autoSelectBtn">Auto Select Shots</button>
-    <button id="actionLogBtn">Action Log</button>
-    <button id="togglePathsBtn">Toggle Attacker Paths</button>
-    <p id="statusMessage"></p>
+  <div id="wrapper">
+    <div>
+      <canvas id="gameCanvas" width="550" height="550"></canvas>
+      <div class="controls">
+        <button id="newGameBtn">New Game</button>
+        <button id="nextTurnBtn">Next Turn</button>
+        <button id="autoSelectBtn">Auto Select Shots</button>
+        <button id="actionLogBtn">Action Log</button>
+        <button id="togglePathsBtn">Toggle Attacker Paths</button>
+        <button id="generatePredictionsBtn">Generate Predictions</button>
+      </div>
+      <p id="statusMessage"></p>
+      <ul id="actionLog"></ul>
+    </div>
+
+    <div id="prediction-container">
+      <h3>Predicted Game States</h3>
+      <div id="predicted-states">
+        <div class="state-image">
+          <h4>Current State</h4>
+          <img id="current-state" alt="Current game state">
+        </div>
+        <div class="state-image">
+          <h4>Next Turn</h4>
+          <img id="next-state" alt="Next turn prediction">
+        </div>
+        <div class="state-image">
+          <h4>Turn +2</h4>
+          <img id="plus-2-state" alt="Turn +2 prediction">
+        </div>
+        <div class="state-image">
+          <h4>Turn +3</h4>
+          <img id="plus-3-state" alt="Turn +3 prediction">
+        </div>
+      </div>
+    </div>
   </div>
-  <ul id="actionLog"></ul>
   <script src="game.js"></script>
 </body>
 </html>
