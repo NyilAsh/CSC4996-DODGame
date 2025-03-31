@@ -7,7 +7,7 @@ function loadImage(src) {
     img.src = "./" + src + "?v=" + Date.now();
   });
 }
-Promise.all([loadImage("Defender.png"), loadImage("Attacker.JPG")])
+Promise.all([loadImage("Defender.png"), loadImage("Attacker.png")])
   .then((images) => {
     defenderImg = images[0];
     attackerImg = images[1];
