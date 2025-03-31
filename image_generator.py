@@ -32,7 +32,6 @@ def create_game_state_image(board, attackers, defenders, shot_tiles=None, show_p
         cv2.putText(img, chr(65 + i), (i * CELL_SIZE + 50, 15), font, 0.5, (100, 100, 100), 1)
         cv2.putText(img, str(i + 1), (5, i * CELL_SIZE + 45), font, 0.5, (100, 100, 100), 1)
     
-    # Draw shot tiles (if any)
     if shot_tiles:
         for tile in shot_tiles:
             r, c = tile
@@ -47,7 +46,6 @@ def create_game_state_image(board, attackers, defenders, shot_tiles=None, show_p
                          ((c + 1) * CELL_SIZE + 25, (r + 1) * CELL_SIZE + 20),
                          (0, 0, 255), 2)
     
-    # Draw defenders
     for defender in defenders:
         r, c = defender
         cv2.rectangle(img,
@@ -59,15 +57,12 @@ def create_game_state_image(board, attackers, defenders, shot_tiles=None, show_p
                      ((c + 1) * CELL_SIZE + 20, (r + 1) * CELL_SIZE + 15),
                      (255, 100, 0), 2)  
     
-    # Draw attackers and their paths
     for attacker in attackers:
-        # Draw attacker path if enabled
         if show_paths:
             path = attacker['steppedPath']
             for i in range(len(path) - 1):
                 start = path[i]
                 end = path[i + 1]
-                # Calculate gradient color based on position in path
                 progress = i / (len(path) - 1)
                 color = (
                     int(0 * (1 - progress) + 255 * progress),  
