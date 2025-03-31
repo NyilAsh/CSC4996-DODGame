@@ -9,20 +9,24 @@
       align-items: center;
       margin-top: 30px;
       font-family: Arial, sans-serif;
+      background-color: #000;
+      color: #fff;
     }
     #gameCanvas {
-      border: 1px solid black;
+      border: 1px solid #fff;
       margin-bottom: 10px;
+      background-color: #111;
     }
     #actionLog {
       display: none;
       max-height: 200px;
       overflow-y: auto;
-      border: 1px solid #ccc;
+      border: 1px solid #444;
       padding: 10px;
       width: 300px;
       margin-top: 10px;
-      background-color: #f9f9f9;
+      background-color: #222;
+      color: #fff;
     }
     .controls {
       margin-bottom: 10px;
@@ -31,6 +35,21 @@
       padding: 8px 12px;
       margin: 0 5px;
       cursor: pointer;
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #444;
+    }
+    button:disabled {
+      background-color: #222;
+      color: #666;
+    }
+    #statusMessage {
+      color: #fff;
+      margin-top: 10px;
     }
   </style>
 </head>
