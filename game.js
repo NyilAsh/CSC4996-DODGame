@@ -49,7 +49,7 @@ let defenderShotHistory = {
     [-1, -1],
     [-1, -1],
     [-1, -1],
-  ], // [current, prev1, prev2, prev3]
+  ],
   B: [
     [-1, -1],
     [-1, -1],
@@ -57,12 +57,12 @@ let defenderShotHistory = {
     [-1, -1],
   ],
 };
+
 function toggleAutoPlay() {
   autoPlayActive = !autoPlayActive;
   autoPlayBtn.textContent = autoPlayActive ? "Stop Auto Play" : "Auto Play";
   autoPlayBtn.style.backgroundColor = autoPlayActive ? "#f44336" : "#4CAF50";
 
-  // Disable other controls during auto-play
   [newGameBtn, nextTurnBtn, autoSelectBtn].forEach((btn) => {
     btn.disabled = autoPlayActive;
   });
@@ -80,16 +80,16 @@ function autoPlayLoop() {
 
   nextTurn();
 
-  // Use requestAnimationFrame for smooth rendering
   if (!gameOver) {
     requestAnimationFrame(() => {
       setTimeout(autoPlayLoop, MIN_TURN_DELAY);
     });
   }
 }
+
 let defenderShots = {
-  A: [], // Current shot for Defender A
-  B: [], // Current shot for Defender B
+  A: [],
+  B: [],
 };
 
 function createEmptyBoard() {
@@ -104,8 +104,8 @@ function createEmptyBoard() {
 }
 
 function placeDefenders(boardArr) {
-  boardArr[1][2] = "A"; // Defender A (left)
-  boardArr[2][7] = "B"; // Defender B (right)
+  boardArr[1][2] = "A";
+  boardArr[2][7] = "B";
 }
 
 function generateManhattanPath(r0, c0, r1, c1) {
@@ -188,10 +188,9 @@ function placeAttackers() {
     let randCol = Math.floor(Math.random() * GRID_SIZE);
     if (!usedCols.includes(randCol)) usedCols.push(randCol);
   }
-  // Sort spawn columns left to right
   usedCols.sort((a, b) => a - b);
 
-  let pathColors = ["orange", "green", "purple"];
+  let pathColors = ["#0ff", "#f0f", "#ff0"];
   let defenders = [];
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
@@ -199,10 +198,9 @@ function placeAttackers() {
     }
   }
 
-  // Assign IDs A, B, C based on left-to-right spawn position
   for (let i = 0; i < defenders.length; i++) {
     let col = usedCols[i];
-    let spawn = [GRID_SIZE - 1, col]; // Spawn at top row (row 9)
+    let spawn = [GRID_SIZE - 1, col];
     let chosenTarget = defenders[i];
     let pathType = Math.random() < 0.5 ? "straight" : "curve";
     let speed = Math.random() < 0.5 ? 1 : 2;
@@ -235,7 +233,7 @@ function placeAttackers() {
       steppedPath.push(fullPath[currentIndex]);
     }
     attackers.push({
-      id: String.fromCharCode(65 + i), // A, B, C based on sorted spawn order
+      id: String.fromCharCode(65 + i),
       fullPath: fullPath,
       steppedPath: steppedPath,
       speed: speed,
@@ -243,19 +241,17 @@ function placeAttackers() {
       currentIndex: 0,
       baseTarget: chosenTarget,
     });
-    // Initialize attacker history
     attackerHistory[String.fromCharCode(65 + i)] = [
       [-1, -1],
       [-1, -1],
       [-1, -1],
-      [-1, -1], // [current, prev1, prev2, prev3]
+      [-1, -1],
     ];
   }
 
-  // For remaining attackers (if less than 3 defenders)
   for (let i = defenders.length; i < 3; i++) {
     let col = usedCols[i];
-    let spawn = [GRID_SIZE - 1, col]; // Spawn at top row (row 9)
+    let spawn = [GRID_SIZE - 1, col];
     let chosenTarget = defenders[Math.floor(Math.random() * defenders.length)];
     let pathType = Math.random() < 0.5 ? "straight" : "curve";
     let speed = Math.random() < 0.5 ? 1 : 2;
@@ -288,7 +284,7 @@ function placeAttackers() {
       steppedPath.push(fullPath[currentIndex]);
     }
     attackers.push({
-      id: String.fromCharCode(65 + i), // A, B, C based on sorted spawn order
+      id: String.fromCharCode(65 + i),
       fullPath: fullPath,
       steppedPath: steppedPath,
       speed: speed,
@@ -296,12 +292,11 @@ function placeAttackers() {
       currentIndex: 0,
       baseTarget: chosenTarget,
     });
-    // Initialize attacker history
     attackerHistory[String.fromCharCode(65 + i)] = [
       [-1, -1],
       [-1, -1],
       [-1, -1],
-      [-1, -1], // [current, prev1, prev2, prev3]
+      [-1, -1],
     ];
   }
 }
@@ -319,13 +314,13 @@ function countDefenders() {
 function drawBoard(boardArr) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw grid with labels
   ctx.font = "14px Arial";
-  ctx.fillStyle = "black";
+  ctx.fillStyle = "#fff";
+  ctx.strokeStyle = "#444";
   ctx.textAlign = "center";
   for (let c = 0; c < GRID_SIZE; c++) {
     ctx.fillText(
-      c.toString(), // Column labels now show 0-9
+      c.toString(),
       c * CELL_SIZE + 25 + CELL_SIZE / 2,
       15
     );
@@ -333,23 +328,22 @@ function drawBoard(boardArr) {
   ctx.textAlign = "right";
   for (let r = 0; r < GRID_SIZE; r++) {
     ctx.fillText(
-      (GRID_SIZE - 1 - r).toString(), // Row labels now show 9 at top to 0 at bottom
+      (GRID_SIZE - 1 - r).toString(),
       20,
       r * CELL_SIZE + 20 + CELL_SIZE / 2 + 5
     );
   }
 
-  // Draw board pieces - now accounting for flipped Y-axis
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
-      ctx.strokeStyle = "black";
+      ctx.strokeStyle = "#444";
       ctx.strokeRect(
         c * CELL_SIZE + 25,
         r * CELL_SIZE + 20,
         CELL_SIZE,
         CELL_SIZE
       );
-      let val = boardArr[GRID_SIZE - 1 - r][c]; // Flip Y-coordinate when accessing board
+      let val = boardArr[GRID_SIZE - 1 - r][c];
       if (typeof val === "string") {
         if (defenderImg)
           ctx.drawImage(
@@ -359,8 +353,7 @@ function drawBoard(boardArr) {
             CELL_SIZE - 10,
             CELL_SIZE - 10
           );
-        // Draw defender label
-        ctx.fillStyle = "white";
+        ctx.fillStyle = "#fff";
         ctx.font = "bold 16px Arial";
         ctx.textAlign = "center";
         ctx.fillText(
@@ -372,19 +365,17 @@ function drawBoard(boardArr) {
     }
   }
 
-  // Draw shot tiles with defender labels
   for (let defender in defenderShots) {
     for (let tile of defenderShots[defender]) {
       ctx.fillStyle =
         defender === "A" ? "rgba(255,0,0,0.3)" : "rgba(0,0,255,0.3)";
       ctx.fillRect(
         tile[1] * CELL_SIZE + 25,
-        (GRID_SIZE - 1 - tile[0]) * CELL_SIZE + 20, // Flip Y-coordinate when drawing
+        (GRID_SIZE - 1 - tile[0]) * CELL_SIZE + 20,
         CELL_SIZE,
         CELL_SIZE
       );
-      // Draw defender label on shot
-      ctx.fillStyle = "black";
+      ctx.fillStyle = "#fff";
       ctx.font = "bold 14px Arial";
       ctx.textAlign = "center";
       ctx.fillText(
@@ -395,13 +386,12 @@ function drawBoard(boardArr) {
     }
   }
 
-  // Draw hovered cell if no shots selected
   let totalShots = defenderShots["A"].length + defenderShots["B"].length;
   if (totalShots === 0 && hoveredCell) {
     ctx.fillStyle = "rgba(0,255,0,0.3)";
     ctx.fillRect(
       hoveredCell[1] * CELL_SIZE + 25,
-      (GRID_SIZE - 1 - hoveredCell[0]) * CELL_SIZE + 20, // Flip Y-coordinate when drawing
+      (GRID_SIZE - 1 - hoveredCell[0]) * CELL_SIZE + 20,
       CELL_SIZE,
       CELL_SIZE
     );
@@ -413,27 +403,31 @@ function drawPaths() {
     ctx.setLineDash([5, 5]);
     ctx.strokeStyle = atk.pathColor;
     ctx.lineWidth = 2;
+    ctx.shadowColor = atk.pathColor;
+    ctx.shadowBlur = 10;
     ctx.beginPath();
     for (let i = 0; i < atk.fullPath.length; i++) {
       let pr = atk.fullPath[i][0];
       let pc = atk.fullPath[i][1];
       let x = pc * CELL_SIZE + 25 + CELL_SIZE / 2;
-      let y = (GRID_SIZE - 1 - pr) * CELL_SIZE + 20 + CELL_SIZE / 2; // Flip Y-coordinate
+      let y = (GRID_SIZE - 1 - pr) * CELL_SIZE + 20 + CELL_SIZE / 2;
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
   }
   ctx.setLineDash([]);
   ctx.font = "16px Arial";
-  ctx.fillStyle = "black";
+  ctx.fillStyle = "#fff";
   ctx.textAlign = "center";
   for (let atk of attackers) {
     for (let i = 1; i < atk.steppedPath.length; i++) {
       let pr = atk.steppedPath[i][0];
       let pc = atk.steppedPath[i][1];
       let x = pc * CELL_SIZE + 25 + CELL_SIZE / 2 - 5;
-      let y = (GRID_SIZE - 1 - pr) * CELL_SIZE + 20 + CELL_SIZE / 2 + 5; // Flip Y-coordinate
+      let y = (GRID_SIZE - 1 - pr) * CELL_SIZE + 20 + CELL_SIZE / 2 + 5;
       ctx.fillText(i.toString(), x, y);
     }
   }
@@ -447,12 +441,11 @@ function drawAttackers() {
       ctx.drawImage(
         attackerImg,
         cc * CELL_SIZE + 30,
-        (GRID_SIZE - 1 - cr) * CELL_SIZE + 25, // Flip Y-coordinate when drawing
+        (GRID_SIZE - 1 - cr) * CELL_SIZE + 25,
         CELL_SIZE - 10,
         CELL_SIZE - 10
       );
-    // Draw attacker label
-    ctx.fillStyle = "white";
+    ctx.fillStyle = "#fff";
     ctx.font = "bold 16px Arial";
     ctx.textAlign = "center";
     ctx.fillText(
@@ -483,7 +476,6 @@ function newGame() {
   stopAutoPlay();
   autoPlayBtn.disabled = false;
 
-  // Initialize history
   defenderShotHistory = {
     A: [
       [-1, -1],
@@ -499,18 +491,16 @@ function newGame() {
     ],
   };
 
-  // Initialize attacker history with starting positions
   attackerHistory = {};
   for (let atk of attackers) {
     let startPos = atk.steppedPath[0];
     attackerHistory[atk.id] = [
-      [startPos[0], startPos[1]], // Current position
-      [-1, -1], // Prev1
-      [-1, -1], // Prev2
-      [-1, -1], // Prev3
+      [startPos[0], startPos[1]],
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
     ];
   }
-  // Auto-select initial shots
   autoSelectShots();
   updateDefenderShotHistory();
 
@@ -588,10 +578,6 @@ function redirectAttackers(destroyedDefender) {
 }
 
 function isValidShotPosition(row, col) {
-  // Position is valid if:
-  // 1. Not occupied by a defender
-  // 2. Not occupied by an attacker's current position
-  // 3. Not already selected as a shot
   return (
     board[row][col] === 0 &&
     !attackers.some((a) => {
@@ -603,7 +589,6 @@ function isValidShotPosition(row, col) {
       .some((t) => t[0] === row && t[1] === col)
   );
 }
-
 function autoSelectShots() {
   // Clear existing shots
   defenderShots = { A: [], B: [] };
