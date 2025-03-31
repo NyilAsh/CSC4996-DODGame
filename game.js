@@ -434,27 +434,44 @@ function drawPaths() {
 }
 
 function drawAttackers() {
-  for (let atk of attackers) {
-    let cr = atk.steppedPath[atk.currentIndex][0];
-    let cc = atk.steppedPath[atk.currentIndex][1];
-    if (attackerImg)
-      ctx.drawImage(
-        attackerImg,
-        cc * CELL_SIZE + 30,
-        (GRID_SIZE - 1 - cr) * CELL_SIZE + 25,
-        CELL_SIZE - 10,
-        CELL_SIZE - 10
-      );
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 16px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      atk.id,
-      cc * CELL_SIZE + 25 + CELL_SIZE / 2,
-      (GRID_SIZE - 1 - cr) * CELL_SIZE + 20 + CELL_SIZE / 2 + 5
-    );
+  let groups = {};
+  attackers.forEach(atk => {
+    let pos = atk.steppedPath[atk.currentIndex];
+    let key = pos[0] + "," + pos[1];
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(atk);
+  });
+  for (let key in groups) {
+    let [row, col] = key.split(",").map(Number);
+    let group = groups[key];
+    if (group.length === 1) {
+      let atk = group[0];
+      ctx.drawImage(attackerImg, (col * CELL_SIZE) + 30, ((GRID_SIZE - 1 - row) * CELL_SIZE) + 25, CELL_SIZE - 10, CELL_SIZE - 10);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 16px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(atk.id, (col * CELL_SIZE) + 25 + CELL_SIZE/2, ((GRID_SIZE - 1 - row) * CELL_SIZE) + 20 + CELL_SIZE/2 + 5);
+    } else {
+      let count = group.length;
+      let offsets = [];
+      if (count === 2) {
+        offsets = [-10, 10];
+      } else {
+        for (let i = 0; i < count; i++) {
+          offsets.push(-15 + (30 * i)/(count - 1));
+        }
+      }
+      group.forEach((atk, idx) => {
+        ctx.drawImage(attackerImg, (col * CELL_SIZE) + 30 + offsets[idx], ((GRID_SIZE - 1 - row) * CELL_SIZE) + 25, CELL_SIZE - 10, CELL_SIZE - 10);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(atk.id, (col * CELL_SIZE) + 25 + CELL_SIZE/2 + offsets[idx], ((GRID_SIZE - 1 - row) * CELL_SIZE) + 20 + CELL_SIZE/2 + 5);
+      });
+    }
   }
 }
+
 
 function drawBoardAndPaths() {
   drawBoard(board);
