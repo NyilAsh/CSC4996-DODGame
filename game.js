@@ -466,6 +466,8 @@ function newGame() {
   gameOver = false;
   statusMessage.textContent = "";
   nextTurnBtn.disabled = false;
+  newGameBtn.disabled = false;  
+  autoSelectBtn.disabled = false; 
   showPaths = false;
   board = createEmptyBoard();
   placeDefenders(board);
@@ -1036,10 +1038,9 @@ function stopAutoPlay() {
   autoPlayBtn.textContent = "Auto Play";
   autoPlayBtn.style.backgroundColor = "#4CAF50";
 
-  // Re-enable controls
-  [newGameBtn, nextTurnBtn, autoSelectBtn].forEach((btn) => {
-    btn.disabled = gameOver;
-  });
+  newGameBtn.disabled = false;
+  nextTurnBtn.disabled = gameOver;
+  autoSelectBtn.disabled = gameOver;
 }
 
 autoPlayBtn.addEventListener("click", function () {
