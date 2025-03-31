@@ -38,22 +38,32 @@ let hoveredCell = null;
 let gameOver = false;
 let actions = [];
 let showPaths = false;
-const autoPlayBtn = document.getElementById('autoPlayBtn');
+const autoPlayBtn = document.getElementById("autoPlayBtn");
 let autoPlayActive = false;
 const MIN_TURN_DELAY = 50;
 let attackerHistory = {};
 
 let defenderShotHistory = {
-  A: [[-1, -1], [-1, -1], [-1, -1], [-1, -1]], // [current, prev1, prev2, prev3]
-  B: [[-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+  A: [
+    [-1, -1],
+    [-1, -1],
+    [-1, -1],
+    [-1, -1],
+  ], // [current, prev1, prev2, prev3]
+  B: [
+    [-1, -1],
+    [-1, -1],
+    [-1, -1],
+    [-1, -1],
+  ],
 };
 function toggleAutoPlay() {
   autoPlayActive = !autoPlayActive;
-  autoPlayBtn.textContent = autoPlayActive ? 'Stop Auto Play' : 'Auto Play';
-  autoPlayBtn.style.backgroundColor = autoPlayActive ? '#f44336' : '#4CAF50';
-  
+  autoPlayBtn.textContent = autoPlayActive ? "Stop Auto Play" : "Auto Play";
+  autoPlayBtn.style.backgroundColor = autoPlayActive ? "#f44336" : "#4CAF50";
+
   // Disable other controls during auto-play
-  [newGameBtn, nextTurnBtn, autoSelectBtn].forEach(btn => {
+  [newGameBtn, nextTurnBtn, autoSelectBtn].forEach((btn) => {
     btn.disabled = autoPlayActive;
   });
 
@@ -69,11 +79,11 @@ function autoPlayLoop() {
   }
 
   nextTurn();
-  
+
   // Use requestAnimationFrame for smooth rendering
   if (!gameOver) {
     requestAnimationFrame(() => {
-      setTimeout(autoPlayLoop, MIN_TURN_DELAY); 
+      setTimeout(autoPlayLoop, MIN_TURN_DELAY);
     });
   }
 }
@@ -235,7 +245,10 @@ function placeAttackers() {
     });
     // Initialize attacker history
     attackerHistory[String.fromCharCode(65 + i)] = [
-      [-1, -1], [-1, -1], [-1, -1], [-1, -1] // [current, prev1, prev2, prev3]
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+      [-1, -1], // [current, prev1, prev2, prev3]
     ];
   }
 
@@ -285,7 +298,10 @@ function placeAttackers() {
     });
     // Initialize attacker history
     attackerHistory[String.fromCharCode(65 + i)] = [
-      [-1, -1], [-1, -1], [-1, -1], [-1, -1] // [current, prev1, prev2, prev3]
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+      [-1, -1], // [current, prev1, prev2, prev3]
     ];
   }
 }
@@ -464,24 +480,34 @@ function newGame() {
   defenderShots = { A: [], B: [] };
   hoveredCell = null;
   actions = [];
-  stopAutoPlay(); 
+  stopAutoPlay();
   autoPlayBtn.disabled = false;
-  
+
   // Initialize history
   defenderShotHistory = {
-    A: [[-1, -1], [-1, -1], [-1, -1], [-1, -1]],
-    B: [[-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+    A: [
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+    ],
+    B: [
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+    ],
   };
-  
+
   // Initialize attacker history with starting positions
   attackerHistory = {};
   for (let atk of attackers) {
     let startPos = atk.steppedPath[0];
     attackerHistory[atk.id] = [
-      [startPos[0], startPos[1]],  // Current position
-      [-1, -1],                    // Prev1
-      [-1, -1],                    // Prev2
-      [-1, -1]                     // Prev3
+      [startPos[0], startPos[1]], // Current position
+      [-1, -1], // Prev1
+      [-1, -1], // Prev2
+      [-1, -1], // Prev3
     ];
   }
   // Auto-select initial shots
@@ -635,31 +661,36 @@ function autoSelectShots() {
 
     // Predict next position based on movement pattern
     let predictedPos;
-    if (positions.length >= 2 && positions[0][0] !== -1 && positions[1][0] !== -1) {
+    if (
+      positions.length >= 2 &&
+      positions[0][0] !== -1 &&
+      positions[1][0] !== -1
+    ) {
       // Calculate movement vector from last 2 positions
       let dr = positions[0][0] - positions[1][0];
       let dc = positions[0][1] - positions[1][1];
-      
+
       // Predict next position by continuing the movement
-      predictedPos = [
-        positions[0][0] + dr,
-        positions[0][1] + dc
-      ];
-      
+      predictedPos = [positions[0][0] + dr, positions[0][1] + dc];
+
       // 50% chance to offset the prediction by 1 in a random direction
       if (Math.random() < 0.5) {
         const directions = [
-          [0, 1], [1, 0], [0, -1], [-1, 0] // right, down, left, up
+          [0, 1],
+          [1, 0],
+          [0, -1],
+          [-1, 0], // right, down, left, up
         ];
-        const randomDir = directions[Math.floor(Math.random() * directions.length)];
+        const randomDir =
+          directions[Math.floor(Math.random() * directions.length)];
         predictedPos[0] += randomDir[0];
         predictedPos[1] += randomDir[1];
       }
-      
+
       // Ensure predicted position is within bounds
       predictedPos[0] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[0]));
       predictedPos[1] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[1]));
-      
+
       // Only use if valid position
       if (isValidShotPosition(predictedPos[0], predictedPos[1])) {
         defenderShots[defender].push([predictedPos[0], predictedPos[1]]);
@@ -675,21 +706,25 @@ function autoSelectShots() {
     // Fallback to current position (with 50% offset chance)
     let currentPos = closestAttacker.steppedPath[closestAttacker.currentIndex];
     predictedPos = [currentPos[0], currentPos[1]];
-    
+
     // 50% chance to offset current position
     if (Math.random() < 1) {
       const directions = [
-        [0, 1], [1, 0], [0, -1], [-1, 0]
+        [0, 1],
+        [1, 0],
+        [0, -1],
+        [-1, 0],
       ];
-      const randomDir = directions[Math.floor(Math.random() * directions.length)];
+      const randomDir =
+        directions[Math.floor(Math.random() * directions.length)];
       predictedPos[0] += randomDir[0];
       predictedPos[1] += randomDir[1];
-      
+
       // Re-clamp values
       predictedPos[0] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[0]));
       predictedPos[1] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[1]));
     }
-    
+
     if (isValidShotPosition(predictedPos[0], predictedPos[1])) {
       defenderShots[defender].push([predictedPos[0], predictedPos[1]]);
       actions.push(
@@ -710,7 +745,8 @@ function autoSelectShots() {
       }
     }
     if (emptyCells.length > 0) {
-      let randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      let randomCell =
+        emptyCells[Math.floor(Math.random() * emptyCells.length)];
       defenderShots[defender].push(randomCell);
       actions.push(
         `Defender ${defender} random shot at ${String.fromCharCode(
@@ -727,49 +763,60 @@ function nextTurn() {
   // 1. Save PRE-move state for history
   const preMoveState = {
     attackers: {},
-    defenders: JSON.parse(JSON.stringify(defenderShots))
+    defenders: JSON.parse(JSON.stringify(defenderShots)),
   };
-  
-  attackers.forEach(atk => {
+
+  attackers.forEach((atk) => {
     preMoveState.attackers[atk.id] = [...atk.steppedPath[atk.currentIndex]];
   });
 
   // 2. Process attacker movement
   const movedAttackers = [];
-  attackers.forEach(atk => {
+  attackers.forEach((atk) => {
     if (atk.currentIndex < atk.steppedPath.length - 1) {
       atk.currentIndex++;
       movedAttackers.push(atk);
-      actions.push(`Attacker ${atk.id} moved to ${
-        String.fromCharCode(65 + atk.steppedPath[atk.currentIndex][1])
-      }${atk.steppedPath[atk.currentIndex][0] + 1}`);
+      actions.push(
+        `Attacker ${atk.id} moved to ${String.fromCharCode(
+          65 + atk.steppedPath[atk.currentIndex][1]
+        )}${atk.steppedPath[atk.currentIndex][0] + 1}`
+      );
     }
   });
 
   // 3. Process hits and defender destruction
   const remainingAttackers = [];
   const destroyedDefenders = [];
-  
-  attackers.forEach(atk => {
+
+  attackers.forEach((atk) => {
     const currentPos = atk.steppedPath[atk.currentIndex];
     let wasHit = false;
 
     // Check hits against defender shots
     Object.entries(defenderShots).forEach(([defender, shots]) => {
-      if (shots.some(shot => shot[0] === currentPos[0] && shot[1] === currentPos[1])) {
-        actions.push(`Defender ${defender} hit Attacker ${atk.id} at ${
-          String.fromCharCode(65 + currentPos[1])
-        }${currentPos[0] + 1}`);
+      if (
+        shots.some(
+          (shot) => shot[0] === currentPos[0] && shot[1] === currentPos[1]
+        )
+      ) {
+        actions.push(
+          `Defender ${defender} hit Attacker ${atk.id} at ${String.fromCharCode(
+            65 + currentPos[1]
+          )}${currentPos[0] + 1}`
+        );
         wasHit = true;
       }
     });
 
     if (!wasHit) {
       // Check if reached defender
-      if (atk.currentIndex >= atk.steppedPath.length - (atk.speed === 2 ? 2 : 1)) {
+      if (
+        atk.currentIndex >=
+        atk.steppedPath.length - (atk.speed === 2 ? 2 : 1)
+      ) {
         const defenderPos = atk.baseTarget;
         const defender = board[defenderPos[0]][defenderPos[1]];
-        if (typeof defender === 'string') {
+        if (typeof defender === "string") {
           board[defenderPos[0]][defenderPos[1]] = 0;
           destroyedDefenders.push(defenderPos);
           actions.push(`Attacker ${atk.id} destroyed Defender ${defender}`);
@@ -784,7 +831,7 @@ function nextTurn() {
   updateAttackerHistory();
 
   // 5. Handle destroyed defenders
-  destroyedDefenders.forEach(defenderPos => {
+  destroyedDefenders.forEach((defenderPos) => {
     redirectAttackers(defenderPos);
   });
 
@@ -813,18 +860,23 @@ function nextTurn() {
 
 function updateAttackerHistory() {
   // Update living attackers
-  attackers.forEach(atk => {
+  attackers.forEach((atk) => {
     const currentPos = atk.steppedPath[atk.currentIndex];
     if (!attackerHistory[atk.id]) {
-      attackerHistory[atk.id] = [[-1,-1],[-1,-1],[-1,-1],[-1,-1]];
+      attackerHistory[atk.id] = [
+        [-1, -1],
+        [-1, -1],
+        [-1, -1],
+        [-1, -1],
+      ];
     }
     attackerHistory[atk.id].pop();
     attackerHistory[atk.id].unshift([currentPos[0], currentPos[1]]);
   });
 
   // Mark dead attackers
-  Object.keys(attackerHistory).forEach(atkId => {
-    if (!attackers.some(a => a.id === atkId)) {
+  Object.keys(attackerHistory).forEach((atkId) => {
+    if (!attackers.some((a) => a.id === atkId)) {
       attackerHistory[atkId].pop();
       attackerHistory[atkId].unshift([-1, -1]);
     }
@@ -832,9 +884,14 @@ function updateAttackerHistory() {
 }
 
 function updateDefenderShotHistory() {
-  Object.keys(defenderShots).forEach(defender => {
+  Object.keys(defenderShots).forEach((defender) => {
     if (!defenderShotHistory[defender]) {
-      defenderShotHistory[defender] = [[-1,-1],[-1,-1],[-1,-1],[-1,-1]];
+      defenderShotHistory[defender] = [
+        [-1, -1],
+        [-1, -1],
+        [-1, -1],
+        [-1, -1],
+      ];
     }
     defenderShotHistory[defender].pop();
     defenderShotHistory[defender].unshift(
@@ -846,58 +903,97 @@ function updateDefenderShotHistory() {
 function logHistoryToCSV() {
   // Prepare data in the exact requested format
   const csvData = {
-    attackerA: attackerHistory['A'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
-    attackerB: attackerHistory['B'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
-    attackerC: attackerHistory['C'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
-    defenderA: defenderShotHistory['A'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
-    defenderB: defenderShotHistory['B'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]]
+    attackerA: attackerHistory["A"] || [
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+    ],
+    attackerB: attackerHistory["B"] || [
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+    ],
+    attackerC: attackerHistory["C"] || [
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+    ],
+    defenderA: defenderShotHistory["A"] || [
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+    ],
+    defenderB: defenderShotHistory["B"] || [
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+      [-1, -1],
+    ],
   };
 
   // Convert to CSV row
   const csvRow = [
     // Attacker A history (prev1, prev2, prev3)
-    csvData.attackerA[1][1], csvData.attackerA[1][0],
-    csvData.attackerA[2][1], csvData.attackerA[2][0],
-    csvData.attackerA[3][1], csvData.attackerA[3][0],
+    csvData.attackerA[1][1],
+    csvData.attackerA[1][0],
+    csvData.attackerA[2][1],
+    csvData.attackerA[2][0],
+    csvData.attackerA[3][1],
+    csvData.attackerA[3][0],
     // Attacker B history
-    csvData.attackerB[1][1], csvData.attackerB[1][0],
-    csvData.attackerB[2][1], csvData.attackerB[2][0],
-    csvData.attackerB[3][1], csvData.attackerB[3][0],
+    csvData.attackerB[1][1],
+    csvData.attackerB[1][0],
+    csvData.attackerB[2][1],
+    csvData.attackerB[2][0],
+    csvData.attackerB[3][1],
+    csvData.attackerB[3][0],
     // Attacker C history
-    csvData.attackerC[1][1], csvData.attackerC[1][0],
-    csvData.attackerC[2][1], csvData.attackerC[2][0],
-    csvData.attackerC[3][1], csvData.attackerC[3][0],
+    csvData.attackerC[1][1],
+    csvData.attackerC[1][0],
+    csvData.attackerC[2][1],
+    csvData.attackerC[2][0],
+    csvData.attackerC[3][1],
+    csvData.attackerC[3][0],
     // Defender A history
-    csvData.defenderA[1][1], csvData.defenderA[1][0],
-    csvData.defenderA[2][1], csvData.defenderA[2][0],
-    csvData.defenderA[3][1], csvData.defenderA[3][0],
+    csvData.defenderA[1][1],
+    csvData.defenderA[1][0],
+    csvData.defenderA[2][1],
+    csvData.defenderA[2][0],
+    csvData.defenderA[3][1],
+    csvData.defenderA[3][0],
     // Defender B history
-    csvData.defenderB[1][1], csvData.defenderB[1][0],
-    csvData.defenderB[2][1], csvData.defenderB[2][0],
-    csvData.defenderB[3][1], csvData.defenderB[3][0],
+    csvData.defenderB[1][1],
+    csvData.defenderB[1][0],
+    csvData.defenderB[2][1],
+    csvData.defenderB[2][0],
+    csvData.defenderB[3][1],
+    csvData.defenderB[3][0],
     // Current positions
-    (attackerHistory['A'] && attackerHistory['A'][0][1]) || -1,
-    (attackerHistory['A'] && attackerHistory['A'][0][0]) || -1,
-    (attackerHistory['B'] && attackerHistory['B'][0][1]) || -1,
-    (attackerHistory['B'] && attackerHistory['B'][0][0]) || -1,
-    (attackerHistory['C'] && attackerHistory['C'][0][1]) || -1,
-    (attackerHistory['C'] && attackerHistory['C'][0][0]) || -1,
-    (defenderShotHistory['A'] && defenderShotHistory['A'][0][1]) || -1,
-    (defenderShotHistory['A'] && defenderShotHistory['A'][0][0]) || -1,
-    (defenderShotHistory['B'] && defenderShotHistory['B'][0][1]) || -1,
-    (defenderShotHistory['B'] && defenderShotHistory['B'][0][0]) || -1
+    (attackerHistory["A"] && attackerHistory["A"][0][1]) || -1,
+    (attackerHistory["A"] && attackerHistory["A"][0][0]) || -1,
+    (attackerHistory["B"] && attackerHistory["B"][0][1]) || -1,
+    (attackerHistory["B"] && attackerHistory["B"][0][0]) || -1,
+    (attackerHistory["C"] && attackerHistory["C"][0][1]) || -1,
+    (attackerHistory["C"] && attackerHistory["C"][0][0]) || -1,
+    (defenderShotHistory["A"] && defenderShotHistory["A"][0][1]) || -1,
+    (defenderShotHistory["A"] && defenderShotHistory["A"][0][0]) || -1,
+    (defenderShotHistory["B"] && defenderShotHistory["B"][0][1]) || -1,
+    (defenderShotHistory["B"] && defenderShotHistory["B"][0][0]) || -1,
   ];
 
   // Send to Python backend
-  fetch('http://localhost:5000/log_history', {
-    method: 'POST',
+  fetch("http://localhost:5000/log_history", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(csvRow),
-  })
-  .catch((error) => {
-    console.error('Error logging history:', error);
+  }).catch((error) => {
+    console.error("Error logging history:", error);
   });
 }
 
@@ -933,8 +1029,7 @@ canvas.addEventListener("click", function (e) {
     if (typeof board[row][col] === "string") return;
     for (let atk of attackers) {
       let current = atk.steppedPath[atk.currentIndex];
-      if (current[0] === row && current[1] === col)
-        return;
+      if (current[0] === row && current[1] === col) return;
     }
 
     // Determine which defender gets this shot (alternate between defenders)
@@ -973,15 +1068,15 @@ canvas.addEventListener("click", function (e) {
 
 function startAutoPlay() {
   if (gameOver) return;
-  
-  autoPlayBtn.textContent = 'Stop Auto Play';
-  autoPlayBtn.style.backgroundColor = '#f44336'; // Red when active
-  
+
+  autoPlayBtn.textContent = "Stop Auto Play";
+  autoPlayBtn.style.backgroundColor = "#f44336"; // Red when active
+
   // Disable other buttons during auto-play
   newGameBtn.disabled = true;
   nextTurnBtn.disabled = true;
   autoSelectBtn.disabled = true;
-  
+
   autoPlayInterval = setInterval(() => {
     nextTurn();
     if (gameOver) {
@@ -992,16 +1087,16 @@ function startAutoPlay() {
 
 function stopAutoPlay() {
   autoPlayActive = false;
-  autoPlayBtn.textContent = 'Auto Play';
-  autoPlayBtn.style.backgroundColor = '#4CAF50';
-  
+  autoPlayBtn.textContent = "Auto Play";
+  autoPlayBtn.style.backgroundColor = "#4CAF50";
+
   // Re-enable controls
-  [newGameBtn, nextTurnBtn, autoSelectBtn].forEach(btn => {
+  [newGameBtn, nextTurnBtn, autoSelectBtn].forEach((btn) => {
     btn.disabled = gameOver;
   });
 }
 
-autoPlayBtn.addEventListener('click', function() {
+autoPlayBtn.addEventListener("click", function () {
   if (autoPlayInterval) {
     stopAutoPlay();
   } else {
@@ -1025,4 +1120,4 @@ autoSelectBtn.addEventListener("click", function () {
   updateActionLog();
   drawBoardAndPaths();
 });
-autoPlayBtn.addEventListener('click', toggleAutoPlay);
+autoPlayBtn.addEventListener("click", toggleAutoPlay);
