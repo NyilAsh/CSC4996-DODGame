@@ -901,99 +901,60 @@ function updateDefenderShotHistory() {
 }
 
 function logHistoryToCSV() {
-  // Prepare data in the exact requested format
+  // Prepare data with proper coordinate orientation (x,y)
   const csvData = {
-    attackerA: attackerHistory["A"] || [
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-    ],
-    attackerB: attackerHistory["B"] || [
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-    ],
-    attackerC: attackerHistory["C"] || [
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-    ],
-    defenderA: defenderShotHistory["A"] || [
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-    ],
-    defenderB: defenderShotHistory["B"] || [
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-    ],
+    attackerA: attackerHistory['A'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
+    attackerB: attackerHistory['B'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
+    attackerC: attackerHistory['C'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
+    defenderA: defenderShotHistory['A'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
+    defenderB: defenderShotHistory['B'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]]
   };
 
-  // Convert to CSV row
+  // Convert to CSV row with proper (x,y) order
   const csvRow = [
-    // Attacker A history (prev1, prev2, prev3)
-    csvData.attackerA[1][1],
-    csvData.attackerA[1][0],
-    csvData.attackerA[2][1],
-    csvData.attackerA[2][0],
-    csvData.attackerA[3][1],
-    csvData.attackerA[3][0],
+    // Attacker A history (prev1, prev2, prev3) as (x,y)
+    csvData.attackerA[1][1], csvData.attackerA[1][0],  // prev1 x,y
+    csvData.attackerA[2][1], csvData.attackerA[2][0],  // prev2 x,y
+    csvData.attackerA[3][1], csvData.attackerA[3][0],  // prev3 x,y
     // Attacker B history
-    csvData.attackerB[1][1],
-    csvData.attackerB[1][0],
-    csvData.attackerB[2][1],
-    csvData.attackerB[2][0],
-    csvData.attackerB[3][1],
-    csvData.attackerB[3][0],
+    csvData.attackerB[1][1], csvData.attackerB[1][0],
+    csvData.attackerB[2][1], csvData.attackerB[2][0],
+    csvData.attackerB[3][1], csvData.attackerB[3][0],
     // Attacker C history
-    csvData.attackerC[1][1],
-    csvData.attackerC[1][0],
-    csvData.attackerC[2][1],
-    csvData.attackerC[2][0],
-    csvData.attackerC[3][1],
-    csvData.attackerC[3][0],
+    csvData.attackerC[1][1], csvData.attackerC[1][0],
+    csvData.attackerC[2][1], csvData.attackerC[2][0],
+    csvData.attackerC[3][1], csvData.attackerC[3][0],
     // Defender A history
-    csvData.defenderA[1][1],
-    csvData.defenderA[1][0],
-    csvData.defenderA[2][1],
-    csvData.defenderA[2][0],
-    csvData.defenderA[3][1],
-    csvData.defenderA[3][0],
+    csvData.defenderA[1][1], csvData.defenderA[1][0],
+    csvData.defenderA[2][1], csvData.defenderA[2][0],
+    csvData.defenderA[3][1], csvData.defenderA[3][0],
     // Defender B history
-    csvData.defenderB[1][1],
-    csvData.defenderB[1][0],
-    csvData.defenderB[2][1],
-    csvData.defenderB[2][0],
-    csvData.defenderB[3][1],
-    csvData.defenderB[3][0],
-    // Current positions
-    (attackerHistory["A"] && attackerHistory["A"][0][1]) || -1,
-    (attackerHistory["A"] && attackerHistory["A"][0][0]) || -1,
-    (attackerHistory["B"] && attackerHistory["B"][0][1]) || -1,
-    (attackerHistory["B"] && attackerHistory["B"][0][0]) || -1,
-    (attackerHistory["C"] && attackerHistory["C"][0][1]) || -1,
-    (attackerHistory["C"] && attackerHistory["C"][0][0]) || -1,
-    (defenderShotHistory["A"] && defenderShotHistory["A"][0][1]) || -1,
-    (defenderShotHistory["A"] && defenderShotHistory["A"][0][0]) || -1,
-    (defenderShotHistory["B"] && defenderShotHistory["B"][0][1]) || -1,
-    (defenderShotHistory["B"] && defenderShotHistory["B"][0][0]) || -1,
+    csvData.defenderB[1][1], csvData.defenderB[1][0],
+    csvData.defenderB[2][1], csvData.defenderB[2][0],
+    csvData.defenderB[3][1], csvData.defenderB[3][0],
+    // Current positions (x,y)
+    (attackerHistory['A'] && attackerHistory['A'][0][1]) || -1, // A current x
+    (attackerHistory['A'] && attackerHistory['A'][0][0]) || -1, // A current y
+    (attackerHistory['B'] && attackerHistory['B'][0][1]) || -1, // B current x
+    (attackerHistory['B'] && attackerHistory['B'][0][0]) || -1, // B current y
+    (attackerHistory['C'] && attackerHistory['C'][0][1]) || -1, // C current x
+    (attackerHistory['C'] && attackerHistory['C'][0][0]) || -1, // C current y
+    (defenderShotHistory['A'] && defenderShotHistory['A'][0][1]) || -1, // A shot x
+    (defenderShotHistory['A'] && defenderShotHistory['A'][0][0]) || -1, // A shot y
+    (defenderShotHistory['B'] && defenderShotHistory['B'][0][1]) || -1, // B shot x
+    (defenderShotHistory['B'] && defenderShotHistory['B'][0][0]) || -1  // B shot y
   ];
 
   // Send to Python backend
-  fetch("http://localhost:5000/log_history", {
-    method: "POST",
+  fetch('http://localhost:5000/log_history', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify(csvRow),
-  }).catch((error) => {
-    console.error("Error logging history:", error);
+  })
+  .catch((error) => {
+    console.error('Error logging history:', error);
   });
 }
 
