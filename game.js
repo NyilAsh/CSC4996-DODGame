@@ -469,6 +469,7 @@ function newGame() {
   newGameBtn.disabled = false;  
   autoSelectBtn.disabled = false; 
   showPaths = false;
+  shotToggle = 0; // reset the toggle
   board = createEmptyBoard();
   placeDefenders(board);
   placeAttackers();
@@ -901,70 +902,36 @@ function updateActionLog() {
     .join("");
 }
 
-canvas.addEventListener("mousemove", function (e) {
+let shotToggle = 0; // global toggle, reset on newGame
+
+canvas.addEventListener("click", function(e) {
   if (gameOver) return;
   let rect = canvas.getBoundingClientRect();
   let x = e.clientX - rect.left;
   let y = e.clientY - rect.top;
   let col = Math.floor((x - 25) / CELL_SIZE);
   let row = GRID_SIZE - 1 - Math.floor((y - 20) / CELL_SIZE);
-  if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE)
-    hoveredCell = [row, col];
-  else hoveredCell = null;
+  if (col < 0 || col >= GRID_SIZE || row < 0 || row >= GRID_SIZE) return;
+  hoveredCell = [row, col];
+  if (typeof board[row][col] === "string") return;
+  for (let atk of attackers) {
+    let current = atk.steppedPath[atk.currentIndex];
+    if (current[0] === row && current[1] === col) return;
+  }
+  // Alternate between defenders: even toggle -> A, odd toggle -> B
+  let defender = (shotToggle % 2 === 0) ? "A" : "B";
+  shotToggle++;
+  defenderShots[defender] = [hoveredCell];
+  shotTiles = [];
+  for (let key in defenderShots) {
+    shotTiles = shotTiles.concat(defenderShots[key]);
+  }
+  actions.push("Defender " + defender + " selected shot at (" + hoveredCell[1] + "," + hoveredCell[0] + ")");
+  updateActionLog();
   drawBoardAndPaths();
 });
 
-canvas.addEventListener("click", function (e) {
-  if (gameOver) return;
-  let rect = canvas.getBoundingClientRect();
-  let x = e.clientX - rect.left;
-  let y = e.clientY - rect.top;
-  let col = Math.floor((x - 25) / CELL_SIZE);
-  let row = GRID_SIZE - 1 - Math.floor((y - 20) / CELL_SIZE);
 
-  if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
-    hoveredCell = [row, col];
-    if (typeof board[row][col] === "string") return;
-    for (let atk of attackers) {
-      let current = atk.steppedPath[atk.currentIndex];
-      if (current[0] === row && current[1] === col) return;
-    }
-
-    let defender;
-    if (defenderShots["A"].length <= defenderShots["B"].length) {
-      defender = "A";
-    } else {
-      defender = "B";
-    }
-
-    if (defenderShots[defender].length < 1) {
-      defenderShots[defender].push(hoveredCell);
-      actions.push(
-        "Defender " +
-          defender +
-          " selected shot at (" +
-          hoveredCell[1] +
-          "," +
-          hoveredCell[0] +
-          ")"
-      );
-    } else {
-      defenderShots[defender][0] = hoveredCell;
-      actions.push(
-        "Defender " +
-          defender +
-          " replaced shot with (" +
-          hoveredCell[1] +
-          "," +
-          hoveredCell[0] +
-          ")"
-      );
-    }
-
-    updateActionLog();
-    drawBoardAndPaths();
-  }
-});
 
 function startAutoPlay() {
   if (gameOver) return;
