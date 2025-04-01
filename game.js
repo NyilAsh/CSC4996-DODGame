@@ -28,6 +28,7 @@ const togglePathsBtn = document.getElementById("togglePathsBtn");
 const statusMessage = document.getElementById("statusMessage");
 const actionLog = document.getElementById("actionLog");
 const autoSelectBtn = document.getElementById("autoSelectBtn");
+const autoPlayBtn = document.getElementById("autoPlayBtn");
 
 const GRID_SIZE = 10;
 const CELL_SIZE = 70;
@@ -38,9 +39,9 @@ let hoveredCell = null;
 let gameOver = false;
 let actions = [];
 let showPaths = false;
-const autoPlayBtn = document.getElementById("autoPlayBtn");
 let autoPlayActive = false;
-const MIN_TURN_DELAY = 50;
+let autoPlayInterval = null;
+const TURN_DELAY_MS = 500;
 let attackerHistory = {};
 
 let defenderShotHistory = {
@@ -63,34 +64,41 @@ function toggleAutoPlay() {
   autoPlayBtn.textContent = autoPlayActive ? "Stop Auto Play" : "Auto Play";
   autoPlayBtn.style.backgroundColor = autoPlayActive ? "#f44336" : "#4CAF50";
 
-  [newGameBtn, nextTurnBtn, autoSelectBtn].forEach((btn) => {
+  // Disable/enable other buttons
+  [newGameBtn, nextTurnBtn, autoSelectBtn, actionLogBtn, togglePathsBtn].forEach(btn => {
     btn.disabled = autoPlayActive;
   });
 
   if (autoPlayActive) {
-    autoPlayLoop();
-  }
-}
-
-function autoPlayLoop() {
-  if (!autoPlayActive || gameOver) {
+    startAutoPlay();
+  } else {
     stopAutoPlay();
-    return;
-  }
-
-  nextTurn();
-
-  if (!gameOver) {
-    requestAnimationFrame(() => {
-      setTimeout(autoPlayLoop, MIN_TURN_DELAY);
-    });
   }
 }
 
-let defenderShots = {
-  A: [],
-  B: [],
-};
+function startAutoPlay() {
+  // If game is over, start a new one immediately
+  if (gameOver) {
+    newGame();
+  }
+  
+  // Start the auto-play loop
+  autoPlayInterval = setInterval(() => {
+    if (gameOver) {
+      newGame();
+    } else {
+      nextTurn();
+    }
+  }, TURN_DELAY_MS);
+}
+
+function stopAutoPlay() {
+  if (autoPlayInterval) {
+    clearInterval(autoPlayInterval);
+    autoPlayInterval = null;
+  }
+  autoPlayActive = false;
+}
 
 function createEmptyBoard() {
   let arr = [];
@@ -472,7 +480,6 @@ function drawAttackers() {
   }
 }
 
-
 function drawBoardAndPaths() {
   drawBoard(board);
   drawAttackers();
@@ -482,19 +489,17 @@ function drawBoardAndPaths() {
 function newGame() {
   gameOver = false;
   statusMessage.textContent = "";
-  nextTurnBtn.disabled = false;
-  newGameBtn.disabled = false;  
-  autoSelectBtn.disabled = false; 
+  nextTurnBtn.disabled = autoPlayActive;
+  newGameBtn.disabled = autoPlayActive;
+  autoSelectBtn.disabled = autoPlayActive;
   showPaths = false;
-  shotToggle = 0; // reset the toggle
+  shotToggle = 0;
   board = createEmptyBoard();
   placeDefenders(board);
   placeAttackers();
   defenderShots = { A: [], B: [] };
   hoveredCell = null;
   actions = [];
-  stopAutoPlay();
-  autoPlayBtn.disabled = false;
 
   defenderShotHistory = {
     A: [
@@ -530,11 +535,13 @@ function newGame() {
 
 function endGame(reason) {
   gameOver = true;
-  stopAutoPlay();
-  nextTurnBtn.disabled = true;
   statusMessage.textContent = reason;
   actions.push("Game ended: " + reason);
   updateActionLog();
+  
+  if (!autoPlayActive) {
+    nextTurnBtn.disabled = true;
+  }
 }
 
 function redirectAttackers(destroyedDefender) {
@@ -919,10 +926,10 @@ function updateActionLog() {
     .join("");
 }
 
-let shotToggle = 0; // global toggle, reset on newGame
+let shotToggle = 0;
 
 canvas.addEventListener("click", function(e) {
-  if (gameOver) return;
+  if (gameOver || autoPlayActive) return;
   let rect = canvas.getBoundingClientRect();
   let x = e.clientX - rect.left;
   let y = e.clientY - rect.top;
@@ -935,7 +942,6 @@ canvas.addEventListener("click", function(e) {
     let current = atk.steppedPath[atk.currentIndex];
     if (current[0] === row && current[1] === col) return;
   }
-  // Alternate between defenders: even toggle -> A, odd toggle -> B
   let defender = (shotToggle % 2 === 0) ? "A" : "B";
   shotToggle++;
   defenderShots[defender] = [hoveredCell];
@@ -946,44 +952,6 @@ canvas.addEventListener("click", function(e) {
   actions.push("Defender " + defender + " selected shot at (" + hoveredCell[1] + "," + hoveredCell[0] + ")");
   updateActionLog();
   drawBoardAndPaths();
-});
-
-
-
-function startAutoPlay() {
-  if (gameOver) return;
-
-  autoPlayBtn.textContent = "Stop Auto Play";
-  autoPlayBtn.style.backgroundColor = "#f44336";
-
-  newGameBtn.disabled = true;
-  nextTurnBtn.disabled = true;
-  autoSelectBtn.disabled = true;
-
-  autoPlayInterval = setInterval(() => {
-    nextTurn();
-    if (gameOver) {
-      stopAutoPlay();
-    }
-  }, TURN_DELAY_MS);
-}
-
-function stopAutoPlay() {
-  autoPlayActive = false;
-  autoPlayBtn.textContent = "Auto Play";
-  autoPlayBtn.style.backgroundColor = "#4CAF50";
-
-  newGameBtn.disabled = false;
-  nextTurnBtn.disabled = gameOver;
-  autoSelectBtn.disabled = gameOver;
-}
-
-autoPlayBtn.addEventListener("click", function () {
-  if (autoPlayInterval) {
-    stopAutoPlay();
-  } else {
-    startAutoPlay();
-  }
 });
 
 newGameBtn.addEventListener("click", newGame);
@@ -997,7 +965,7 @@ togglePathsBtn.addEventListener("click", function () {
   drawBoardAndPaths();
 });
 autoSelectBtn.addEventListener("click", function () {
-  if (gameOver) return;
+  if (gameOver || autoPlayActive) return;
   autoSelectShots();
   updateActionLog();
   drawBoardAndPaths();
