@@ -49,9 +49,9 @@ def test_individual_input(*args, model_path='../checkpoints/best_model.pt', visu
 # Example usage
 if __name__ == '__main__':
     test_individual_input(
-        1,1, 2,2, 3,3,   # Attacker A
-        4,4, -1,-1, -1,-1,  # Attacker B
-        7,7, 8,8, 9,9,   # Attacker C
-        -1,-1, 1,8, 2,7,  # Defender A
-        3,6, -1,-1, 5,4   # Defender B
+        2, 9,        -1, -1,        -1, -1,
+        4, 9, -1, -1, -1, -1,
+        8, 9, -1, -1, -1, -1
+        , 1, 9, -1, -1, -1, -1,
+        9,9,-1,-1,-1,-1  # Defender B
     )
