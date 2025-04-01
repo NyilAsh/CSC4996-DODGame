@@ -1,11 +1,10 @@
 import torch.nn as nn
-from Config import config
 
 class PositionPredictor(nn.Module):
     def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(
-            nn.Conv2d(config.INPUT_CHANNELS, 64, 3, padding=1),
+            nn.Conv2d(15, 64, 3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.Conv2d(64, 128, 3, padding=1),
@@ -24,7 +23,7 @@ class PositionPredictor(nn.Module):
             nn.Conv2d(128, 64, 3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Conv2d(64, config.OUTPUT_CHANNELS, 3, padding=1)
+            nn.Conv2d(64, 5, 3, padding=1)
         )
     
     def forward(self, x):

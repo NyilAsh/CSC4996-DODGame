@@ -3,7 +3,7 @@ import numpy as np
 import torch.nn as nn
 
 class EarlyStopping:
-    def __init__(self, patience=5, delta=0, path='checkpoint.pt'):
+    def __init__(self, patience=5, delta=0, path='AI/checkpoints/best_model.pt'):
         self.patience = patience
         self.delta = delta
         self.path = path
