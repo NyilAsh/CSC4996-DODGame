@@ -1,23 +1,66 @@
-let defenderImg, attackerImg;
-function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject("Failed to load " + src);
-    img.src = "./" + src + "?v=" + Date.now();
-  });
+let defenderImg = new Image();
+let attackerImg = new Image();
+let redSquareImg = new Image();
+let blueSquareImg = new Image();
+
+function loadGameImages() {
+    console.log("Loading game images...");
+    
+    // Create a promise for each image load
+    const defenderPromise = new Promise((resolve, reject) => {
+        defenderImg.onload = () => {
+            console.log("Defender image loaded successfully");
+            resolve();
+        };
+        defenderImg.onerror = () => {
+            console.error("Error loading Defender image");
+            reject();
+        };
+    });
+
+    const attackerPromise = new Promise((resolve, reject) => {
+        attackerImg.onload = () => {
+            console.log("Attacker image loaded successfully");
+            resolve();
+        };
+        attackerImg.onerror = () => {
+            console.error("Error loading Attacker image");
+            reject();
+        };
+    });
+
+    redSquareImg.onload = function() {
+        console.log("Red square image loaded successfully");
+    };
+    
+    blueSquareImg.onload = function() {
+        console.log("Blue square image loaded successfully");
+    };
+
+    redSquareImg.onerror = function() {
+        console.error("Error loading red square image");
+    };
+    
+    blueSquareImg.onerror = function() {
+        console.error("Error loading blue square image");
+    };
+
+    defenderImg.src = "Defender.png";
+    attackerImg.src = "Attacker.png";
+
+    return Promise.all([defenderPromise, attackerPromise]);
 }
-Promise.all([loadImage("Defender.png"), loadImage("Attacker.png")])
-  .then((images) => {
-    defenderImg = images[0];
-    attackerImg = images[1];
-    newGame();
-  })
-  .catch(() => {
-    defenderImg = null;
-    attackerImg = null;
-    newGame();
-  });
+
+// Call loadGameImages when window loads
+window.onload = function() {
+    loadGameImages().then(() => {
+        console.log("All images loaded, starting game");
+        newGame();
+    }).catch(error => {
+        console.error("Error loading images:", error);
+        newGame(); 
+    });
+};
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -29,6 +72,7 @@ const statusMessage = document.getElementById("statusMessage");
 const actionLog = document.getElementById("actionLog");
 const autoSelectBtn = document.getElementById("autoSelectBtn");
 const autoPlayBtn = document.getElementById("autoPlayBtn");
+const generatePredictionsBtn = document.getElementById("generatePredictionsBtn");
 
 const GRID_SIZE = 10;
 const CELL_SIZE = 70;
@@ -60,32 +104,25 @@ let defenderShotHistory = {
 };
 
 function toggleAutoPlay() {
-  autoPlayActive = !autoPlayActive;
-  autoPlayBtn.textContent = autoPlayActive ? "Stop Auto Play" : "Auto Play";
-  autoPlayBtn.style.backgroundColor = autoPlayActive ? "#f44336" : "#4CAF50";
-
-  // Disable/enable other buttons
-  [newGameBtn, nextTurnBtn, autoSelectBtn, actionLogBtn, togglePathsBtn].forEach(btn => {
-    btn.disabled = autoPlayActive;
-  });
-
-  if (autoPlayActive) {
-    startAutoPlay();
-  } else {
+  if (autoPlayInterval) {
     stopAutoPlay();
+  } else {
+    startAutoPlay();
   }
 }
 
 function startAutoPlay() {
-  // If game is over, start a new one immediately
-  if (gameOver) {
-    newGame();
-  }
+  autoPlayActive = true;
+  autoPlayBtn.textContent = 'Stop Auto Play';
+  autoPlayBtn.style.backgroundColor = '#f44336'; 
   
-  // Start the auto-play loop
+  newGameBtn.disabled = true;
+  nextTurnBtn.disabled = true;
+  autoSelectBtn.disabled = true;
+  
   autoPlayInterval = setInterval(() => {
     if (gameOver) {
-      newGame();
+      newGame(); // Start a new game automatically if current game is over
     } else {
       nextTurn();
     }
@@ -93,11 +130,18 @@ function startAutoPlay() {
 }
 
 function stopAutoPlay() {
+  autoPlayActive = false;
+  autoPlayBtn.textContent = 'Auto Play';
+  autoPlayBtn.style.backgroundColor = '#333';
+  
+  newGameBtn.disabled = false;
+  nextTurnBtn.disabled = false;
+  autoSelectBtn.disabled = false;
+  
   if (autoPlayInterval) {
     clearInterval(autoPlayInterval);
     autoPlayInterval = null;
   }
-  autoPlayActive = false;
 }
 
 function createEmptyBoard() {
@@ -321,18 +365,16 @@ function countDefenders() {
 
 function drawBoard(boardArr) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+  
   ctx.font = "14px Arial";
   ctx.fillStyle = "#fff";
   ctx.strokeStyle = "#444";
   ctx.textAlign = "center";
+  
   for (let c = 0; c < GRID_SIZE; c++) {
-    ctx.fillText(
-      c.toString(),
-      c * CELL_SIZE + 25 + CELL_SIZE / 2,
-      15
-    );
+    ctx.fillText(c.toString(), c * CELL_SIZE + 25 + CELL_SIZE / 2, 15);
   }
+  
   ctx.textAlign = "right";
   for (let r = 0; r < GRID_SIZE; r++) {
     ctx.fillText(
@@ -341,7 +383,7 @@ function drawBoard(boardArr) {
       r * CELL_SIZE + 20 + CELL_SIZE / 2 + 5
     );
   }
-
+  
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
       ctx.strokeStyle = "#444";
@@ -351,9 +393,9 @@ function drawBoard(boardArr) {
         CELL_SIZE,
         CELL_SIZE
       );
-      let val = boardArr[GRID_SIZE - 1 - r][c];
-      if (typeof val === "string") {
-        if (defenderImg)
+      
+      if (typeof boardArr[GRID_SIZE - 1 - r][c] === "string") {
+        try {
           ctx.drawImage(
             defenderImg,
             c * CELL_SIZE + 30,
@@ -361,48 +403,44 @@ function drawBoard(boardArr) {
             CELL_SIZE - 10,
             CELL_SIZE - 10
           );
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 16px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(
-          val,
-          c * CELL_SIZE + 25 + CELL_SIZE / 2,
-          r * CELL_SIZE + 20 + CELL_SIZE / 2 + 5
-        );
+          
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 16px Arial";
+          ctx.textAlign = "center";
+          ctx.fillText(
+            boardArr[GRID_SIZE - 1 - r][c],
+            c * CELL_SIZE + 25 + CELL_SIZE/2,
+            r * CELL_SIZE + 20 + CELL_SIZE/2 + 5
+          );
+        } catch (e) {
+          console.error("Error drawing defender:", e);
+        }
       }
     }
   }
-
-  for (let defender in defenderShots) {
-    for (let tile of defenderShots[defender]) {
-      ctx.fillStyle =
-        defender === "A" ? "rgba(255,0,0,0.3)" : "rgba(0,0,255,0.3)";
-      ctx.fillRect(
-        tile[1] * CELL_SIZE + 25,
-        (GRID_SIZE - 1 - tile[0]) * CELL_SIZE + 20,
-        CELL_SIZE,
-        CELL_SIZE
-      );
-      ctx.fillStyle = "#fff";
-      ctx.font = "bold 14px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(
-        defender,
-        tile[1] * CELL_SIZE + 25 + CELL_SIZE / 2,
-        (GRID_SIZE - 1 - tile[0]) * CELL_SIZE + 20 + CELL_SIZE / 2 + 5
-      );
+  
+  if (defenderShots["A"].length + defenderShots["B"].length > 0) {
+    for (let defender in defenderShots) {
+      defenderShots[defender].forEach(shot => {
+        let [r, c] = shot;
+        ctx.fillStyle = defender === "A" ? "rgba(255,0,0,0.3)" : "rgba(0,0,255,0.3)";
+        ctx.fillRect(
+          c * CELL_SIZE + 25,
+          (GRID_SIZE - 1 - r) * CELL_SIZE + 20,
+          CELL_SIZE,
+          CELL_SIZE
+        );
+        
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "bold 20px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          defender,
+          c * CELL_SIZE + 25 + CELL_SIZE/2,
+          (GRID_SIZE - 1 - r) * CELL_SIZE + 20 + CELL_SIZE/2 + 5
+        );
+      });
     }
-  }
-
-  let totalShots = defenderShots["A"].length + defenderShots["B"].length;
-  if (totalShots === 0 && hoveredCell) {
-    ctx.fillStyle = "rgba(0,255,0,0.3)";
-    ctx.fillRect(
-      hoveredCell[1] * CELL_SIZE + 25,
-      (GRID_SIZE - 1 - hoveredCell[0]) * CELL_SIZE + 20,
-      CELL_SIZE,
-      CELL_SIZE
-    );
   }
 }
 
@@ -418,7 +456,7 @@ function drawPaths() {
       let pr = atk.fullPath[i][0];
       let pc = atk.fullPath[i][1];
       let x = pc * CELL_SIZE + 25 + CELL_SIZE / 2;
-      let y = (GRID_SIZE - 1 - pr) * CELL_SIZE + 20 + CELL_SIZE / 2;
+      let y = (GRID_SIZE - 1 - pr) * CELL_SIZE + 20 + CELL_SIZE / 2; 
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
@@ -435,47 +473,34 @@ function drawPaths() {
       let pr = atk.steppedPath[i][0];
       let pc = atk.steppedPath[i][1];
       let x = pc * CELL_SIZE + 25 + CELL_SIZE / 2 - 5;
-      let y = (GRID_SIZE - 1 - pr) * CELL_SIZE + 20 + CELL_SIZE / 2 + 5;
+      let y = (GRID_SIZE - 1 - pr) * CELL_SIZE + 20 + CELL_SIZE / 2 + 5; 
       ctx.fillText(i.toString(), x, y);
     }
   }
 }
 
 function drawAttackers() {
-  let groups = {};
-  attackers.forEach(atk => {
-    let pos = atk.steppedPath[atk.currentIndex];
-    let key = pos[0] + "," + pos[1];
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(atk);
-  });
-  for (let key in groups) {
-    let [row, col] = key.split(",").map(Number);
-    let group = groups[key];
-    if (group.length === 1) {
-      let atk = group[0];
-      ctx.drawImage(attackerImg, (col * CELL_SIZE) + 30, ((GRID_SIZE - 1 - row) * CELL_SIZE) + 25, CELL_SIZE - 10, CELL_SIZE - 10);
+  for (let atk of attackers) {
+    let [r, c] = atk.steppedPath[atk.currentIndex];
+    try {
+      ctx.drawImage(
+        attackerImg,
+        c * CELL_SIZE + 30,
+        (GRID_SIZE - 1 - r) * CELL_SIZE + 25,
+        CELL_SIZE - 10,
+        CELL_SIZE - 10
+      );
+      
       ctx.fillStyle = "#fff";
       ctx.font = "bold 16px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(atk.id, (col * CELL_SIZE) + 25 + CELL_SIZE/2, ((GRID_SIZE - 1 - row) * CELL_SIZE) + 20 + CELL_SIZE/2 + 5);
-    } else {
-      let count = group.length;
-      let offsets = [];
-      if (count === 2) {
-        offsets = [-10, 10];
-      } else {
-        for (let i = 0; i < count; i++) {
-          offsets.push(-15 + (30 * i)/(count - 1));
-        }
-      }
-      group.forEach((atk, idx) => {
-        ctx.drawImage(attackerImg, (col * CELL_SIZE) + 30 + offsets[idx], ((GRID_SIZE - 1 - row) * CELL_SIZE) + 25, CELL_SIZE - 10, CELL_SIZE - 10);
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 16px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(atk.id, (col * CELL_SIZE) + 25 + CELL_SIZE/2 + offsets[idx], ((GRID_SIZE - 1 - row) * CELL_SIZE) + 20 + CELL_SIZE/2 + 5);
-      });
+      ctx.fillText(
+        atk.id,
+        c * CELL_SIZE + 25 + CELL_SIZE/2,
+        (GRID_SIZE - 1 - r) * CELL_SIZE + 20 + CELL_SIZE/2 + 5
+      );
+    } catch (e) {
+      console.error("Error drawing attacker:", e);
     }
   }
 }
@@ -489,9 +514,9 @@ function drawBoardAndPaths() {
 function newGame() {
   gameOver = false;
   statusMessage.textContent = "";
-  nextTurnBtn.disabled = autoPlayActive;
-  newGameBtn.disabled = autoPlayActive;
-  autoSelectBtn.disabled = autoPlayActive;
+  nextTurnBtn.disabled = false;
+  newGameBtn.disabled = false;
+  autoSelectBtn.disabled = false;
   showPaths = false;
   shotToggle = 0;
   board = createEmptyBoard();
@@ -500,37 +525,36 @@ function newGame() {
   defenderShots = { A: [], B: [] };
   hoveredCell = null;
   actions = [];
-
+  
+  // Initialize histories
   defenderShotHistory = {
-    A: [
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-    ],
-    B: [
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-      [-1, -1],
-    ],
+    A: [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
+    B: [[-1,-1],[-1,-1],[-1,-1],[-1,-1]]
   };
 
   attackerHistory = {};
-  for (let atk of attackers) {
+  for (let atk of attackers) { 
     let startPos = atk.steppedPath[0];
     attackerHistory[atk.id] = [
       [startPos[0], startPos[1]],
       [-1, -1],
       [-1, -1],
-      [-1, -1],
+      [-1, -1]
     ];
   }
+  
+  // Auto-select initial shots
   autoSelectShots();
   updateDefenderShotHistory();
-
+  
   trainingData.push(JSON.parse(JSON.stringify(board)));
   drawBoardAndPaths();
+
+  // Hide prediction container when starting new game
+  const predictionContainer = document.getElementById('prediction-container');
+  if (predictionContainer) {
+    predictionContainer.style.display = 'none';
+  }
 }
 
 function endGame(reason) {
@@ -621,8 +645,8 @@ function autoSelectShots() {
   defenderShots = { A: [], B: [] };
 
   let livingDefenders = [];
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
       if (typeof board[r][c] === "string") {
         livingDefenders.push(board[r][c]);
       }
@@ -666,22 +690,21 @@ function autoSelectShots() {
     let positions = attackerHistory[closestAttacker.id] || [];
 
     let predictedPos;
-    if (
-      positions.length >= 2 &&
-      positions[0][0] !== -1 &&
-      positions[1][0] !== -1
-    ) {
-      let dr = positions[0][0] - positions[1][0];
-      let dc = positions[0][1] - positions[1][1];
-
-      predictedPos = [positions[0][0] + dr, positions[0][1] + dc];
-
+    if (positions.length >= 2 && positions[0][0] !== -1 && positions[1][0] !== -1) {
+      // Calculate movement vector from last 2 positions
+        let dr = positions[0][0] - positions[1][0];
+        let dc = positions[0][1] - positions[1][1];
+        
+      // Predict next position by continuing the movement
+        predictedPos = [
+          positions[0][0] + dr,
+          positions[0][1] + dc
+        ];
+        
+      // 50% chance to offset the prediction by 1 in a random direction
       if (Math.random() < 0.5) {
         const directions = [
-          [0, 1],
-          [1, 0],
-          [0, -1],
-          [-1, 0],
+          [0, 1], [1, 0], [0, -1], [-1, 0] 
         ];
         const randomDir =
           directions[Math.floor(Math.random() * directions.length)];
@@ -691,7 +714,7 @@ function autoSelectShots() {
 
       predictedPos[0] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[0]));
       predictedPos[1] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[1]));
-
+      
       if (isValidShotPosition(predictedPos[0], predictedPos[1])) {
         defenderShots[defender].push([predictedPos[0], predictedPos[1]]);
         actions.push(
@@ -715,7 +738,6 @@ function autoSelectShots() {
         directions[Math.floor(Math.random() * directions.length)];
       predictedPos[0] += randomDir[0];
       predictedPos[1] += randomDir[1];
-
       predictedPos[0] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[0]));
       predictedPos[1] = Math.max(0, Math.min(GRID_SIZE - 1, predictedPos[1]));
     }
@@ -728,17 +750,16 @@ function autoSelectShots() {
       continue;
     }
 
-    let emptyCells = [];
-    for (let r = 0; r < GRID_SIZE; r++) {
-      for (let c = 0; c < GRID_SIZE; c++) {
+  let emptyCells = [];
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
         if (isValidShotPosition(r, c)) {
-          emptyCells.push([r, c]);
-        }
+        emptyCells.push([r, c]);
       }
     }
-    if (emptyCells.length > 0) {
-      let randomCell =
-        emptyCells[Math.floor(Math.random() * emptyCells.length)];
+  }
+  if (emptyCells.length > 0) {
+    let randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
       defenderShots[defender].push(randomCell);
       actions.push(
         `Defender ${defender} random shot at (${randomCell[1]},${randomCell[0]})`
@@ -749,7 +770,8 @@ function autoSelectShots() {
 
 function nextTurn() {
   if (gameOver) return;
-
+  
+  // 1. Save PRE-move state for history
   const preMoveState = {
     attackers: {},
     defenders: JSON.parse(JSON.stringify(defenderShots)),
@@ -801,8 +823,8 @@ function nextTurn() {
           board[defenderPos[0]][defenderPos[1]] = 0;
           destroyedDefenders.push(defenderPos);
           actions.push(`Attacker ${atk.id} destroyed Defender ${defender}`);
-        }
-      } else {
+      }
+    } else {
         remainingAttackers.push(atk);
       }
     }
@@ -930,28 +952,32 @@ let shotToggle = 0;
 
 canvas.addEventListener("click", function(e) {
   if (gameOver || autoPlayActive) return;
+  
   let rect = canvas.getBoundingClientRect();
   let x = e.clientX - rect.left;
   let y = e.clientY - rect.top;
   let col = Math.floor((x - 25) / CELL_SIZE);
   let row = GRID_SIZE - 1 - Math.floor((y - 20) / CELL_SIZE);
+  
   if (col < 0 || col >= GRID_SIZE || row < 0 || row >= GRID_SIZE) return;
-  hoveredCell = [row, col];
-  if (typeof board[row][col] === "string") return;
-  for (let atk of attackers) {
-    let current = atk.steppedPath[atk.currentIndex];
-    if (current[0] === row && current[1] === col) return;
-  }
+  
+    hoveredCell = [row, col];
+  if (!isValidShotPosition(row, col)) return;
+  
   let defender = (shotToggle % 2 === 0) ? "A" : "B";
   shotToggle++;
-  defenderShots[defender] = [hoveredCell];
-  shotTiles = [];
-  for (let key in defenderShots) {
-    shotTiles = shotTiles.concat(defenderShots[key]);
-  }
-  actions.push("Defender " + defender + " selected shot at (" + hoveredCell[1] + "," + hoveredCell[0] + ")");
-  updateActionLog();
-  drawBoardAndPaths();
+  
+  defenderShots[defender] = [[row, col]];
+  
+  actions.push(
+    "Defender " + defender + 
+    " selected shot at " + 
+    String.fromCharCode(65 + col) + 
+    (row + 1)
+  );
+  
+    updateActionLog();
+    drawBoardAndPaths();
 });
 
 newGameBtn.addEventListener("click", newGame);
@@ -971,3 +997,258 @@ autoSelectBtn.addEventListener("click", function () {
   drawBoardAndPaths();
 });
 autoPlayBtn.addEventListener("click", toggleAutoPlay);
+
+function getCurrentDefenders() {
+    let defenders = [];
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            if (typeof board[r][c] === "string") {
+                defenders.push([r, c, board[r][c]]);
+            }
+        }
+    }
+    return defenders;
+}
+
+function drawPredictionCanvas(canvas, board, attackers, defenders, defenderShots, turnOffset = 0) {
+    const ctx = canvas.getContext('2d');
+    const PRED_CELL_SIZE = 36;
+    
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= GRID_SIZE; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * PRED_CELL_SIZE + 25, 20);
+        ctx.lineTo(i * PRED_CELL_SIZE + 25, PRED_CELL_SIZE * GRID_SIZE + 20);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(25, i * PRED_CELL_SIZE + 20);
+        ctx.lineTo(PRED_CELL_SIZE * GRID_SIZE + 25, i * PRED_CELL_SIZE + 20);
+        ctx.stroke();
+    }
+    
+    ctx.fillStyle = '#666';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    for (let i = 0; i < GRID_SIZE; i++) {
+        ctx.fillText(i.toString(), i * PRED_CELL_SIZE + 25 + PRED_CELL_SIZE/2, 15);
+        ctx.textAlign = 'right';
+        ctx.fillText((GRID_SIZE - 1 - i).toString(), 20, i * PRED_CELL_SIZE + 20 + PRED_CELL_SIZE/2);
+    }
+    
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            if (typeof board[r][c] === "string") {
+                try {
+                    ctx.drawImage(
+                        defenderImg,
+                        c * PRED_CELL_SIZE + 27,
+                        (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 22,
+                        PRED_CELL_SIZE - 4,
+                        PRED_CELL_SIZE - 4
+                    );
+                    
+                    ctx.fillStyle = "white";
+                    ctx.font = "bold 14px Arial";
+                    ctx.textAlign = "center";
+                    ctx.fillText(
+                        board[r][c],
+                        c * PRED_CELL_SIZE + 25 + PRED_CELL_SIZE/2,
+                        (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 20 + PRED_CELL_SIZE/2 + 5
+                    );
+                } catch (e) {
+                    console.error("Error drawing defender in prediction:", e);
+                }
+            }
+        }
+    }
+    
+    Object.entries(defenderShots).forEach(([defender, shots]) => {
+        shots.forEach(shot => {
+            const [r, c] = shot;
+            ctx.fillStyle = defender === "A" ? "rgba(255,0,0,0.3)" : "rgba(0,0,255,0.3)";
+            ctx.fillRect(
+                c * PRED_CELL_SIZE + 25,
+                (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 20,
+                PRED_CELL_SIZE,
+                PRED_CELL_SIZE
+            );
+            
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "bold 16px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(
+                defender,
+                c * PRED_CELL_SIZE + 25 + PRED_CELL_SIZE/2,
+                (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 20 + PRED_CELL_SIZE/2 + 5
+            );
+        });
+    });
+    
+    attackers.forEach(attacker => {
+        let predictedIndex = Math.min(attacker.currentIndex + turnOffset, attacker.steppedPath.length - 1);
+        let [r, c] = attacker.steppedPath[predictedIndex];
+        
+        try {
+            ctx.drawImage(
+                attackerImg,
+                c * PRED_CELL_SIZE + 27,
+                (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 22,
+                PRED_CELL_SIZE - 4,
+                PRED_CELL_SIZE - 4
+            );
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(
+                attacker.id,
+                c * PRED_CELL_SIZE + 25 + PRED_CELL_SIZE/2,
+                (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 20 + PRED_CELL_SIZE/2 + 5
+            );
+        } catch (e) {
+            console.error("Error drawing attacker in prediction:", e);
+        }
+    });
+}
+
+function generatePossibleShots() {
+    const possibleShots = [];
+    
+    // Get current defender and attacker positions
+    const defenders = getCurrentDefenders();
+    const currentAttackerPositions = attackers.map(atk => ({
+        id: atk.id,
+        pos: atk.steppedPath[atk.currentIndex],
+        nextPos: atk.steppedPath[Math.min(atk.currentIndex + 1, atk.steppedPath.length - 1)]
+    }));
+
+    // Best prediction: Try to shoot where attackers will be next turn
+    const bestPrediction = { A: [], B: [] };
+    defenders.forEach((defender, idx) => {
+        if (currentAttackerPositions[idx]) {
+            bestPrediction[defender[2]] = [currentAttackerPositions[idx].nextPos];
+        }
+    });
+    possibleShots.push(bestPrediction);
+
+    // Second best prediction: Shoot one square ahead of current attacker positions
+    const secondBestPrediction = { A: [], B: [] };
+    defenders.forEach((defender, idx) => {
+        if (currentAttackerPositions[idx]) {
+            const currentPos = currentAttackerPositions[idx].pos;
+            const nextPos = [
+                Math.min(currentPos[0] + 1, GRID_SIZE - 1),
+                currentPos[1]
+            ];
+            secondBestPrediction[defender[2]] = [nextPos];
+        }
+    });
+    possibleShots.push(secondBestPrediction);
+
+    return possibleShots;
+}
+
+function evaluatePrediction(shots) {
+    let score = 0;
+    let maxPossibleScore = attackers.length * 100; // Perfect score if all shots are direct hits
+    
+    attackers.forEach(atk => {
+        const nextPos = atk.steppedPath[Math.min(atk.currentIndex + 1, atk.steppedPath.length - 1)];
+        
+        Object.entries(shots).forEach(([defender, defenderShots]) => {
+            defenderShots.forEach(shot => {
+                // Direct hit
+                if (shot[0] === nextPos[0] && shot[1] === nextPos[1]) {
+                    score += 100;
+                }
+                // Near miss
+                else if (Math.abs(shot[0] - nextPos[0]) + Math.abs(shot[1] - nextPos[1]) === 1) {
+                    score += 50;
+                }
+                // Distance penalty
+                else {
+                    score -= 2 * (Math.abs(shot[0] - nextPos[0]) + Math.abs(shot[1] - nextPos[1]));
+                }
+            });
+        });
+    });
+    
+    // Convert to score out of 10
+    return Math.max(0, Math.min(10, (score / maxPossibleScore) * 10));
+}
+
+function generatePredictions() {
+    try {
+        console.log("Starting prediction generation...");
+        
+        const predictionContainer = document.getElementById('prediction-container');
+        if (predictionContainer) {
+            predictionContainer.style.display = 'block';
+        }
+        
+        const bestCanvas = document.getElementById('best-option');
+        const secondBestCanvas = document.getElementById('second-best');
+        
+        if (!bestCanvas || !secondBestCanvas) {
+            console.error('Prediction canvases not found');
+            return;
+        }
+
+        // Generate and score predictions
+        const possibleShots = generatePossibleShots();
+        console.log("Generated predictions:", possibleShots);
+
+        const scoredPredictions = possibleShots.map(shots => ({
+            shots,
+            score: evaluatePrediction(shots)
+        })).sort((a, b) => b.score - a.score);
+
+        // Draw best prediction
+        if (scoredPredictions.length > 0) {
+            drawPredictionCanvas(
+                bestCanvas,
+                board,
+                attackers,
+                getCurrentDefenders(),
+                scoredPredictions[0].shots,
+                0
+            );
+
+            const bestScore = document.getElementById('best-score');
+            if (bestScore) {
+                bestScore.textContent = `Score: ${scoredPredictions[0].score.toFixed(1)}/10`;
+            }
+        }
+
+        // Draw second best prediction
+        if (scoredPredictions.length > 1) {
+            drawPredictionCanvas(
+                secondBestCanvas,
+                board,
+                attackers,
+                getCurrentDefenders(),
+                scoredPredictions[1].shots,
+                0
+            );
+
+            const secondScore = document.getElementById('second-score');
+            if (secondScore) {
+                secondScore.textContent = `Score: ${scoredPredictions[1].score.toFixed(1)}/10`;
+            }
+        }
+
+        console.log("Prediction generation complete");
+
+    } catch (error) {
+        console.error('Error generating predictions:', error);
+        statusMessage.textContent = "Error generating predictions";
+    }
+}
+
+// Add event listener for generate predictions button
+generatePredictionsBtn.addEventListener('click', generatePredictions);
