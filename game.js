@@ -512,6 +512,9 @@ function drawBoardAndPaths() {
 }
 
 function newGame() {
+  actions = [];
+  actionLog.innerHTML = "";
+  
   gameOver = false;
   statusMessage.textContent = "";
   nextTurnBtn.disabled = false;
@@ -524,9 +527,7 @@ function newGame() {
   placeAttackers();
   defenderShots = { A: [], B: [] };
   hoveredCell = null;
-  actions = [];
   
-  // Initialize histories
   defenderShotHistory = {
     A: [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
     B: [[-1,-1],[-1,-1],[-1,-1],[-1,-1]]
@@ -543,14 +544,12 @@ function newGame() {
     ];
   }
   
-  // Auto-select initial shots
   autoSelectShots();
   updateDefenderShotHistory();
   
   trainingData.push(JSON.parse(JSON.stringify(board)));
   drawBoardAndPaths();
 
-  // Hide prediction container when starting new game
   const predictionContainer = document.getElementById('prediction-container');
   if (predictionContainer) {
     predictionContainer.style.display = 'none';
@@ -942,10 +941,50 @@ function logHistoryToCSV() {
   });
 }
 
+function createSeparator(character) {
+  const separator = document.createElement('hr');
+  separator.style.border = 'none';
+  separator.style.borderTop = '1px dashed #444';
+  separator.style.margin = '5px 0';
+  
+  if (character === '~') {
+    separator.style.borderTop = '1px wavy #666';
+  }
+  
+  return separator;
+}
+
 function updateActionLog() {
-  actionLog.innerHTML = actions
-    .map((action) => "<li>" + action + "</li>")
-    .join("");
+  actionLog.innerHTML = '';
+  
+  let currentGameStart = true;
+  
+  for (let i = 0; i < actions.length; i++) {
+    const action = actions[i];
+    
+    // Add game separator if this is the first action of a new game
+    if (currentGameStart) {
+      actionLog.appendChild(createSeparator('~'));
+      currentGameStart = false;
+    }
+    
+    // Add action item
+    const li = document.createElement('li');
+    li.textContent = action;
+    actionLog.appendChild(li);
+    
+    // Add turn separator if next action is from a different turn
+    if (i < actions.length - 1 && 
+        actions[i+1].includes("Defender") && 
+        !action.includes("Defender")) {
+      actionLog.appendChild(createSeparator('-'));
+    }
+    
+    // Detect new game
+    if (action.includes("Game ended")) {
+      currentGameStart = true;
+    }
+  }
 }
 
 let shotToggle = 0;
