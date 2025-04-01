@@ -5,6 +5,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
+<<<<<<< HEAD
       margin: 20px;
       background-color: #f0f0f0;
     }
@@ -18,6 +19,26 @@
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+=======
+      background-color: #000;
+      color: #fff;
+    }
+    #gameCanvas {
+      border: 1px solid #fff;
+      margin-bottom: 10px;
+      background-color: #111;
+    }
+    #actionLog {
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #444;
+      padding: 10px;
+      width: 300px;
+      margin-top: 10px;
+      background-color: #222;
+      color: #fff;
+>>>>>>> 5067e3ffd2c387dd69068e11f2778e26d4f44677
     }
     .controls {
       margin-top: 20px;
@@ -29,6 +50,7 @@
       padding: 10px 20px;
       font-size: 14px;
       cursor: pointer;
+<<<<<<< HEAD
       background-color: #4CAF50;
       color: white;
       border: none;
@@ -79,10 +101,28 @@
       margin-bottom: 5px;
       width: 400px;
       height: 400px;
+=======
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #444;
+    }
+    button:disabled {
+      background-color: #222;
+      color: #666;
+    }
+    #statusMessage {
+      color: #fff;
+      margin-top: 10px;
+>>>>>>> 5067e3ffd2c387dd69068e11f2778e26d4f44677
     }
   </style>
 </head>
 <body>
+<<<<<<< HEAD
   <div class="game-container">
     <div class="board-container">
       <canvas id="gameCanvas" width="550" height="550"></canvas>
@@ -114,6 +154,17 @@
         </div>
       </div>
     </div>
+=======
+  <canvas id="gameCanvas" width="750" height="750"></canvas>
+  <div class="controls">
+    <button id="newGameBtn">New Game</button>
+    <button id="nextTurnBtn">Next Turn</button>
+    <button id="autoSelectBtn">Auto Select Shots</button>
+    <button id="actionLogBtn">Action Log</button>
+    <button id="togglePathsBtn">Toggle Attacker Paths</button>
+    <button id="autoPlayBtn">Auto Play</button>
+    <p id="statusMessage"></p>
+>>>>>>> 5067e3ffd2c387dd69068e11f2778e26d4f44677
   </div>
   <script src="game.js"></script>
 </body>
