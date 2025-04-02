@@ -1291,3 +1291,23 @@ function generatePredictions() {
 
 // Add event listener for generate predictions button
 generatePredictionsBtn.addEventListener('click', generatePredictions);
+// Add this at the bottom of game.js where other event listeners are defined
+document.getElementById('AI').addEventListener('click', function() {
+  // Send data to server
+  fetch('http://localhost:5000/ai_predict', {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({data: 1}),
+  })
+  .then(response => response.json())
+  .then(data => {
+      console.log('AI Prediction response:', data);
+      statusMessage.textContent = "AI Prediction requested";
+  })
+  .catch((error) => {
+      console.error('Error:', error);
+      statusMessage.textContent = "Error requesting AI prediction";
+  });
+});

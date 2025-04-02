@@ -49,7 +49,7 @@ def test_individual_input(*args, model_path='checkpoints/best_model.pt', visuali
 # Example usage
 if __name__ == '__main__':
     test_individual_input(
-        2, 9,        -1, -1,        -1, -1,
+        2, 9,-1, -1,-1, -1,
         4, 9, -1, -1, -1, -1,
         8, 9, -1, -1, -1, -1
         , 1, 9, -1, -1, -1, -1,
