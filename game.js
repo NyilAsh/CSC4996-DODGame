@@ -629,6 +629,7 @@ function redirectAttackers(destroyedDefender) {
 
 function isValidShotPosition(row, col) {
   return (
+    row>=0&&col>=0&&
     board[row][col] === 0 &&
     !attackers.some((a) => {
       let pos = a.steppedPath[a.currentIndex];
@@ -828,16 +829,16 @@ function nextTurn() {
       }
     }
   });
-  console.log("before",attackerHistory)
-  updateAttackerHistory();
-  console.log("after",attackerHistory)
-
+  
   destroyedDefenders.forEach((defenderPos) => {
     redirectAttackers(defenderPos);
   });
 
   attackers = remainingAttackers;
   defenderShots = { A: [], B: [] };
+  console.log("before",attackerHistory)
+  updateAttackerHistory();
+  console.log("after",attackerHistory)
 
   autoSelectShots();
 
