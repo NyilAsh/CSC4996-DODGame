@@ -1062,7 +1062,7 @@ canvas.addEventListener("click", function(e) {
   shotToggle++;
   
   defenderShots[defender] = [[row, col]];
-  
+  defenderShotHistory[defender][0]=defenderShots[defender][0];
   actions.push(
     "Defender " + defender + 
     " selected shot at " + 
