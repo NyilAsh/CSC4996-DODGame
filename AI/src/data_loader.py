@@ -61,8 +61,8 @@ class PositionDataset(Dataset):
         return input_images, output_images
 
 def get_data_loaders(batch_size=32):
-    train_dataset = PositionDataset('data\data.csv')
-    test_dataset = PositionDataset('data\data.csv')
+    train_dataset = PositionDataset('src/data/data.csv')
+    test_dataset = PositionDataset('src/data/testdata.csv')
     return (
         DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
         DataLoader(test_dataset, batch_size=batch_size, shuffle=False)

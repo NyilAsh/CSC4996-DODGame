@@ -2,7 +2,7 @@ import torch
 from model import PositionPredictor
 from data_loader import PositionDataset
 
-def test_individual_input(*args, model_path='../checkpoints/best_model.pt', visualize=True):
+def test_individual_input(*args, model_path='checkpoints/best_model.pt', visualize=True):
     """Test with individual coordinates (-1,-1 for empty positions)"""
     # Load model
     model = PositionPredictor()

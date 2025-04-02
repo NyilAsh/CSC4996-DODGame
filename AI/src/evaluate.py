@@ -5,7 +5,7 @@ from utils import MaskedBCELoss
 
 def evaluate():
     model = PositionPredictor()
-    model.load_state_dict(torch.load('../checkpoints/best_model.pt'))
+    model.load_state_dict(torch.load('checkpoints/best_model.pt'))
     model.eval()
     
     _, test_loader = get_data_loaders(batch_size=32)
