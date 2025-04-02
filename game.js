@@ -629,6 +629,7 @@ function redirectAttackers(destroyedDefender) {
 
 function isValidShotPosition(row, col) {
   return (
+    row>=0&&col>=0&&
     board[row][col] === 0 &&
     !attackers.some((a) => {
       let pos = a.steppedPath[a.currentIndex];
@@ -829,7 +830,6 @@ function nextTurn() {
     }
   });
 
-  updateAttackerHistory();
 
   destroyedDefenders.forEach((defenderPos) => {
     redirectAttackers(defenderPos);
@@ -837,14 +837,16 @@ function nextTurn() {
 
   attackers = remainingAttackers;
   defenderShots = { A: [], B: [] };
+  updateAttackerHistory();
 
   autoSelectShots();
 
   updateDefenderShotHistory();
+  logHistoryToCSV();
+
 
   drawBoardAndPaths();
 
-  logHistoryToCSV();
 
   if (attackers.length === 0) endGame("Defenders win!");
   if (countDefenders() === 0) endGame("Attackers win!");
