@@ -856,24 +856,33 @@ function nextTurn() {
 }
 
 function updateAttackerHistory() {
-  attackers.forEach((atk) => {
-    const currentPos = atk.steppedPath[atk.currentIndex];
-    if (!attackerHistory[atk.id]) {
-      attackerHistory[atk.id] = [
-        [-1, -1],
-        [-1, -1],
-        [-1, -1],
-        [-1, -1],
+  // First create array of active attacker IDs
+  const activeAttackerIds = attackers.map(atk => atk.id);
+
+  // Update history for all possible attackers (A, B, C)
+  ['A', 'B', 'C'].forEach(id => {
+    if (!attackerHistory[id]) {
+      attackerHistory[id] = [
+        [-1, -1], [-1, -1], [-1, -1], [-1, -1]
       ];
     }
-    attackerHistory[atk.id].pop();
-    attackerHistory[atk.id].unshift([currentPos[0], currentPos[1]]);
-  });
 
-  Object.keys(attackerHistory).forEach((atkId) => {
-    if (!attackers.some((a) => a.id === atkId)) {
-      attackerHistory[atkId].pop();
-      attackerHistory[atkId].unshift([-1, -1]);
+    // If attacker is active, update their position
+    if (activeAttackerIds.includes(id)) {
+      const attacker = attackers.find(atk => atk.id === id);
+      const currentPos = attacker.steppedPath[attacker.currentIndex];
+      
+      // Only update if position changed
+      if (currentPos[0] !== attackerHistory[id][0][0] || 
+          currentPos[1] !== attackerHistory[id][0][1]) {
+        attackerHistory[id].pop();
+        attackerHistory[id].unshift([currentPos[0], currentPos[1]]);
+      }
+    } 
+    // If attacker is not active, mark as destroyed
+    else if (attackerHistory[id][0][0] !== -1 || attackerHistory[id][0][1] !== -1) {
+      attackerHistory[id].pop();
+      attackerHistory[id].unshift([-1, -1]);
     }
   });
 }
@@ -896,43 +905,88 @@ function updateDefenderShotHistory() {
 }
 
 function logHistoryToBoth() {
-  const csvData = {
-    attackerA: attackerHistory['A'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
-    attackerB: attackerHistory['B'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
-    attackerC: attackerHistory['C'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
-    defenderA: defenderShotHistory['A'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
-    defenderB: defenderShotHistory['B'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]]
+  // Helper function to validate and format coordinates
+  const formatCoord = (val, max) => {
+    val = parseInt(val);
+    return (val >= 0 && val < max) ? val : -1;
   };
 
+  // Ensure all attackers (A, B, C) have history
+  ['A', 'B', 'C'].forEach(id => {
+    if (!attackerHistory[id]) {
+      attackerHistory[id] = [
+        [-1, -1], [-1, -1], [-1, -1], [-1, -1]
+      ];
+    }
+  });
+
+  // Ensure both defenders have history
+  ['A', 'B'].forEach(id => {
+    if (!defenderShotHistory[id]) {
+      defenderShotHistory[id] = [
+        [-1, -1], [-1, -1], [-1, -1], [-1, -1]
+      ];
+    }
+  });
+
   const csvRow = [
-    csvData.attackerA[1][1], csvData.attackerA[1][0],
-    csvData.attackerA[2][1], csvData.attackerA[2][0],
-    csvData.attackerA[3][1], csvData.attackerA[3][0],
-    csvData.attackerB[1][1], csvData.attackerB[1][0],
-    csvData.attackerB[2][1], csvData.attackerB[2][0],
-    csvData.attackerB[3][1], csvData.attackerB[3][0],
-    csvData.attackerC[1][1], csvData.attackerC[1][0],
-    csvData.attackerC[2][1], csvData.attackerC[2][0],
-    csvData.attackerC[3][1], csvData.attackerC[3][0],
-    csvData.defenderA[1][1], csvData.defenderA[1][0],
-    csvData.defenderA[2][1], csvData.defenderA[2][0],
-    csvData.defenderA[3][1], csvData.defenderA[3][0],
-    csvData.defenderB[1][1], csvData.defenderB[1][0],
-    csvData.defenderB[2][1], csvData.defenderB[2][0],
-    csvData.defenderB[3][1], csvData.defenderB[3][0],
-    (attackerHistory['A'] && attackerHistory['A'][0][1]) || -1,
-    (attackerHistory['A'] && attackerHistory['A'][0][0]) || -1,
-    (attackerHistory['B'] && attackerHistory['B'][0][1]) || -1,
-    (attackerHistory['B'] && attackerHistory['B'][0][0]) || -1,
-    (attackerHistory['C'] && attackerHistory['C'][0][1]) || -1,
-    (attackerHistory['C'] && attackerHistory['C'][0][0]) || -1,
-    (defenderShotHistory['A'] && defenderShotHistory['A'][0][1]) || -1,
-    (defenderShotHistory['A'] && defenderShotHistory['A'][0][0]) || -1,
-    (defenderShotHistory['B'] && defenderShotHistory['B'][0][1]) || -1,
-    (defenderShotHistory['B'] && defenderShotHistory['B'][0][0]) || -1
+    // CURRENT POSITIONS FIRST (A_Cur, B_cur, C_cur, SA_cur, SB_Cur)
+    formatCoord(attackerHistory['A'][0][1], GRID_SIZE), // A_Cur x
+    formatCoord(attackerHistory['A'][0][0], GRID_SIZE), // A_Cur y
+    formatCoord(attackerHistory['B'][0][1], GRID_SIZE), // B_Cur x
+    formatCoord(attackerHistory['B'][0][0], GRID_SIZE), // B_Cur y
+    formatCoord(attackerHistory['C'][0][1], GRID_SIZE), // C_Cur x
+    formatCoord(attackerHistory['C'][0][0], GRID_SIZE), // C_Cur y
+    formatCoord(defenderShotHistory['A'][0][1], GRID_SIZE), // SA_Cur x
+    formatCoord(defenderShotHistory['A'][0][0], GRID_SIZE), // SA_Cur y
+    formatCoord(defenderShotHistory['B'][0][1], GRID_SIZE), // SB_Cur x
+    formatCoord(defenderShotHistory['B'][0][0], GRID_SIZE), // SB_Cur y
+    
+    // HISTORICAL DATA FOLLOWS
+    // Attacker A history (AA3, AA2, AA1)
+    formatCoord(attackerHistory['A'][1][1], GRID_SIZE), // AA3 x
+    formatCoord(attackerHistory['A'][1][0], GRID_SIZE), // AA3 y
+    formatCoord(attackerHistory['A'][2][1], GRID_SIZE), // AA2 x
+    formatCoord(attackerHistory['A'][2][0], GRID_SIZE), // AA2 y
+    formatCoord(attackerHistory['A'][3][1], GRID_SIZE), // AA1 x
+    formatCoord(attackerHistory['A'][3][0], GRID_SIZE), // AA1 y
+    
+    // Attacker B history (AB3, AB2, AB1)
+    formatCoord(attackerHistory['B'][1][1], GRID_SIZE), // AB3 x
+    formatCoord(attackerHistory['B'][1][0], GRID_SIZE), // AB3 y
+    formatCoord(attackerHistory['B'][2][1], GRID_SIZE), // AB2 x
+    formatCoord(attackerHistory['B'][2][0], GRID_SIZE), // AB2 y
+    formatCoord(attackerHistory['B'][3][1], GRID_SIZE), // AB1 x
+    formatCoord(attackerHistory['B'][3][0], GRID_SIZE), // AB1 y
+    
+    // Attacker C history (AC3, AC2, AC1)
+    formatCoord(attackerHistory['C'][1][1], GRID_SIZE), // AC3 x
+    formatCoord(attackerHistory['C'][1][0], GRID_SIZE), // AC3 y
+    formatCoord(attackerHistory['C'][2][1], GRID_SIZE), // AC2 x
+    formatCoord(attackerHistory['C'][2][0], GRID_SIZE), // AC2 y
+    formatCoord(attackerHistory['C'][3][1], GRID_SIZE), // AC1 x
+    formatCoord(attackerHistory['C'][3][0], GRID_SIZE), // AC1 y
+    
+    // Defender A shot history (SA3, SA2, SA1)
+    formatCoord(defenderShotHistory['A'][1][1], GRID_SIZE), // SA3 x
+    formatCoord(defenderShotHistory['A'][1][0], GRID_SIZE), // SA3 y
+    formatCoord(defenderShotHistory['A'][2][1], GRID_SIZE), // SA2 x
+    formatCoord(defenderShotHistory['A'][2][0], GRID_SIZE), // SA2 y
+    formatCoord(defenderShotHistory['A'][3][1], GRID_SIZE), // SA1 x
+    formatCoord(defenderShotHistory['A'][3][0], GRID_SIZE), // SA1 y
+    
+    // Defender B shot history (SB3, SB2, SB1)
+    formatCoord(defenderShotHistory['B'][1][1], GRID_SIZE), // SB3 x
+    formatCoord(defenderShotHistory['B'][1][0], GRID_SIZE), // SB3 y
+    formatCoord(defenderShotHistory['B'][2][1], GRID_SIZE), // SB2 x
+    formatCoord(defenderShotHistory['B'][2][0], GRID_SIZE), // SB2 y
+    formatCoord(defenderShotHistory['B'][3][1], GRID_SIZE), // SB1 x
+    formatCoord(defenderShotHistory['B'][3][0], GRID_SIZE)  // SB1 y
   ];
 
-  // Send data to your existing CSV logger on port 5000
+  console.log("Logging positions to server:", csvRow);
+
+  // Send data to servers
   fetch('http://localhost:5000/log_history', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -944,7 +998,6 @@ function logHistoryToBoth() {
     console.error('Error logging history to CSV:', error);
   });
 
-  // Send data to the extra processing server on port 5001
   fetch('http://localhost:5001/log_data', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -956,7 +1009,6 @@ function logHistoryToBoth() {
     console.error("Error sending data to extra processing server:", error);
   });
 }
-
 
 function createSeparator(character) {
   const separator = document.createElement('hr');
