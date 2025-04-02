@@ -828,8 +828,9 @@ function nextTurn() {
       }
     }
   });
-
+  console.log("before",attackerHistory)
   updateAttackerHistory();
+  console.log("after",attackerHistory)
 
   destroyedDefenders.forEach((defenderPos) => {
     redirectAttackers(defenderPos);
@@ -840,11 +841,13 @@ function nextTurn() {
 
   autoSelectShots();
 
+  console.log("before",defenderShotHistory)
   updateDefenderShotHistory();
+  console.log("after",defenderShotHistory)
 
   drawBoardAndPaths();
 
-  logHistoryToCSV();
+  logHistoryToBoth();
 
   if (attackers.length === 0) endGame("Defenders win!");
   if (countDefenders() === 0) endGame("Attackers win!");
@@ -892,7 +895,7 @@ function updateDefenderShotHistory() {
   });
 }
 
-function logHistoryToCSV() {
+function logHistoryToBoth() {
   const csvData = {
     attackerA: attackerHistory['A'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
     attackerB: attackerHistory['B'] || [[-1,-1],[-1,-1],[-1,-1],[-1,-1]],
@@ -929,17 +932,31 @@ function logHistoryToCSV() {
     (defenderShotHistory['B'] && defenderShotHistory['B'][0][0]) || -1
   ];
 
+  // Send data to your existing CSV logger on port 5000
   fetch('http://localhost:5000/log_history', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(csvRow),
   })
+  .then(response => response.json())
+  .then(data => console.log("CSV logger response:", data))
   .catch((error) => {
-    console.error('Error logging history:', error);
+    console.error('Error logging history to CSV:', error);
+  });
+
+  // Send data to the extra processing server on port 5001
+  fetch('http://localhost:5001/log_data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(csvRow),
+  })
+  .then(response => response.json())
+  .then(data => console.log("Extra processing response:", data))
+  .catch((error) => {
+    console.error("Error sending data to extra processing server:", error);
   });
 }
+
 
 function createSeparator(character) {
   const separator = document.createElement('hr');
@@ -1289,25 +1306,4 @@ function generatePredictions() {
     }
 }
 
-// Add event listener for generate predictions button
-generatePredictionsBtn.addEventListener('click', generatePredictions);
-// Add this at the bottom of game.js where other event listeners are defined
-document.getElementById('AI').addEventListener('click', function() {
-  // Send data to server
-  fetch('http://localhost:5000/ai_predict', {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({data: 1}),
-  })
-  .then(response => response.json())
-  .then(data => {
-      console.log('AI Prediction response:', data);
-      statusMessage.textContent = "AI Prediction requested";
-  })
-  .catch((error) => {
-      console.error('Error:', error);
-      statusMessage.textContent = "Error requesting AI prediction";
-  });
-});
+
