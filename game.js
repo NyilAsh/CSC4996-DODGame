@@ -847,8 +847,6 @@ function nextTurn() {
 
   drawBoardAndPaths();
 
-  logHistoryToBoth();
-
   if (attackers.length === 0) endGame("Defenders win!");
   if (countDefenders() === 0) endGame("Attackers win!");
 
@@ -1074,7 +1072,7 @@ canvas.addEventListener("click", function(e) {
     updateActionLog();
     drawBoardAndPaths();
 });
-
+document.getElementById('makePredictionsBtn').addEventListener('click', logHistoryToBoth);
 newGameBtn.addEventListener("click", newGame);
 nextTurnBtn.addEventListener("click", nextTurn);
 actionLogBtn.addEventListener("click", function () {
