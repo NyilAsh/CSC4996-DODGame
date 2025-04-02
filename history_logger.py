@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 CORS(app) 
 
-CSV_FILE = os.path.abspath('data.csv')
+CSV_FILE = os.path.abspath('AI/src/data/testdata.csv')
 print(f"Writing to: {CSV_FILE}")
 # Create CSV with exact headers if doesn't exist
 if not os.path.exists(CSV_FILE):

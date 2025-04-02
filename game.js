@@ -85,7 +85,7 @@ let actions = [];
 let showPaths = false;
 let autoPlayActive = false;
 let autoPlayInterval = null;
-const TURN_DELAY_MS = 500;
+const TURN_DELAY_MS = 100;
 let attackerHistory = {};
 
 let defenderShotHistory = {
