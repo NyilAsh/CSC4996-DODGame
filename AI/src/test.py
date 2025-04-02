@@ -1,8 +1,8 @@
 import torch
 import numpy as np
-from model import PositionPredictor
+from AI.src.model import PositionPredictor
 
-def test_individual_input(*args, model_path='checkpoints/best_model.pt'):
+def test_individual_input(*args, model_path='AI/checkpoints/best_model.pt'):
     """
     Returns predictions in two groups:
     - first_choices: Top prediction for each of the 5 channels

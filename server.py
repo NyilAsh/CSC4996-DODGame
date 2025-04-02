@@ -1,5 +1,6 @@
 import json
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from AI.src.test import test_individual_input
 
 class MyHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
@@ -17,6 +18,7 @@ class MyHandler(BaseHTTPRequestHandler):
             try:
                 data = json.loads(post_data)
                 # Print only the arrays received via POST.
+                pred=test_individual_input(*data)
                 print(data,'\n')
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
