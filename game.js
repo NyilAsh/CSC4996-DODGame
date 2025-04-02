@@ -933,55 +933,42 @@ function logHistoryToBoth() {
     // CURRENT POSITIONS FIRST (A_Cur, B_cur, C_cur, SA_cur, SB_Cur)
     formatCoord(attackerHistory['A'][0][1], GRID_SIZE), // A_Cur x
     formatCoord(attackerHistory['A'][0][0], GRID_SIZE), // A_Cur y
+    formatCoord(attackerHistory['A'][1][1], GRID_SIZE), // AA2 x (prev1)
+    formatCoord(attackerHistory['A'][1][0], GRID_SIZE), // AA2 y (prev1)
+    formatCoord(attackerHistory['A'][2][1], GRID_SIZE), // AA1 x (prev2)
+    formatCoord(attackerHistory['A'][2][0], GRID_SIZE), // AA1 y (prev2)
+    
+    // Attacker B - Current + 2 most recent positions
     formatCoord(attackerHistory['B'][0][1], GRID_SIZE), // B_Cur x
     formatCoord(attackerHistory['B'][0][0], GRID_SIZE), // B_Cur y
+    formatCoord(attackerHistory['B'][1][1], GRID_SIZE), // AB2 x (prev1)
+    formatCoord(attackerHistory['B'][1][0], GRID_SIZE), // AB2 y (prev1)
+    formatCoord(attackerHistory['B'][2][1], GRID_SIZE), // AB1 x (prev2)
+    formatCoord(attackerHistory['B'][2][0], GRID_SIZE), // AB1 y (prev2),
+    
+    // Attacker C - Current + 2 most recent positions
     formatCoord(attackerHistory['C'][0][1], GRID_SIZE), // C_Cur x
     formatCoord(attackerHistory['C'][0][0], GRID_SIZE), // C_Cur y
+    formatCoord(attackerHistory['C'][1][1], GRID_SIZE), // AC2 x (prev1)
+    formatCoord(attackerHistory['C'][1][0], GRID_SIZE), // AC2 y (prev1)
+    formatCoord(attackerHistory['C'][2][1], GRID_SIZE), // AC1 x (prev2)
+    formatCoord(attackerHistory['C'][2][0], GRID_SIZE), // AC1 y (prev2),
+    
+    // Defender A Shots - Current + 2 most recent
     formatCoord(defenderShotHistory['A'][0][1], GRID_SIZE), // SA_Cur x
     formatCoord(defenderShotHistory['A'][0][0], GRID_SIZE), // SA_Cur y
+    formatCoord(defenderShotHistory['A'][1][1], GRID_SIZE), // SA2 x (prev1)
+    formatCoord(defenderShotHistory['A'][1][0], GRID_SIZE), // SA2 y (prev1)
+    formatCoord(defenderShotHistory['A'][2][1], GRID_SIZE), // SA1 x (prev2)
+    formatCoord(defenderShotHistory['A'][2][0], GRID_SIZE), // SA1 y (prev2),
+    
+    // Defender B Shots - Current + 2 most recent
     formatCoord(defenderShotHistory['B'][0][1], GRID_SIZE), // SB_Cur x
     formatCoord(defenderShotHistory['B'][0][0], GRID_SIZE), // SB_Cur y
-    
-    // HISTORICAL DATA FOLLOWS
-    // Attacker A history (AA3, AA2, AA1)
-    formatCoord(attackerHistory['A'][1][1], GRID_SIZE), // AA3 x
-    formatCoord(attackerHistory['A'][1][0], GRID_SIZE), // AA3 y
-    formatCoord(attackerHistory['A'][2][1], GRID_SIZE), // AA2 x
-    formatCoord(attackerHistory['A'][2][0], GRID_SIZE), // AA2 y
-    formatCoord(attackerHistory['A'][3][1], GRID_SIZE), // AA1 x
-    formatCoord(attackerHistory['A'][3][0], GRID_SIZE), // AA1 y
-    
-    // Attacker B history (AB3, AB2, AB1)
-    formatCoord(attackerHistory['B'][1][1], GRID_SIZE), // AB3 x
-    formatCoord(attackerHistory['B'][1][0], GRID_SIZE), // AB3 y
-    formatCoord(attackerHistory['B'][2][1], GRID_SIZE), // AB2 x
-    formatCoord(attackerHistory['B'][2][0], GRID_SIZE), // AB2 y
-    formatCoord(attackerHistory['B'][3][1], GRID_SIZE), // AB1 x
-    formatCoord(attackerHistory['B'][3][0], GRID_SIZE), // AB1 y
-    
-    // Attacker C history (AC3, AC2, AC1)
-    formatCoord(attackerHistory['C'][1][1], GRID_SIZE), // AC3 x
-    formatCoord(attackerHistory['C'][1][0], GRID_SIZE), // AC3 y
-    formatCoord(attackerHistory['C'][2][1], GRID_SIZE), // AC2 x
-    formatCoord(attackerHistory['C'][2][0], GRID_SIZE), // AC2 y
-    formatCoord(attackerHistory['C'][3][1], GRID_SIZE), // AC1 x
-    formatCoord(attackerHistory['C'][3][0], GRID_SIZE), // AC1 y
-    
-    // Defender A shot history (SA3, SA2, SA1)
-    formatCoord(defenderShotHistory['A'][1][1], GRID_SIZE), // SA3 x
-    formatCoord(defenderShotHistory['A'][1][0], GRID_SIZE), // SA3 y
-    formatCoord(defenderShotHistory['A'][2][1], GRID_SIZE), // SA2 x
-    formatCoord(defenderShotHistory['A'][2][0], GRID_SIZE), // SA2 y
-    formatCoord(defenderShotHistory['A'][3][1], GRID_SIZE), // SA1 x
-    formatCoord(defenderShotHistory['A'][3][0], GRID_SIZE), // SA1 y
-    
-    // Defender B shot history (SB3, SB2, SB1)
-    formatCoord(defenderShotHistory['B'][1][1], GRID_SIZE), // SB3 x
-    formatCoord(defenderShotHistory['B'][1][0], GRID_SIZE), // SB3 y
-    formatCoord(defenderShotHistory['B'][2][1], GRID_SIZE), // SB2 x
-    formatCoord(defenderShotHistory['B'][2][0], GRID_SIZE), // SB2 y
-    formatCoord(defenderShotHistory['B'][3][1], GRID_SIZE), // SB1 x
-    formatCoord(defenderShotHistory['B'][3][0], GRID_SIZE)  // SB1 y
+    formatCoord(defenderShotHistory['B'][1][1], GRID_SIZE), // SB2 x (prev1)
+    formatCoord(defenderShotHistory['B'][1][0], GRID_SIZE), // SB2 y (prev1)
+    formatCoord(defenderShotHistory['B'][2][1], GRID_SIZE), // SB1 x (prev2)
+    formatCoord(defenderShotHistory['B'][2][0], GRID_SIZE)
   ];
 
   console.log("Logging positions to server:", csvRow);
