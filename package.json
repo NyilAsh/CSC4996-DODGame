@@ -2,9 +2,10 @@
     "name": "defense-game",
     "version": "1.0.0",
     "scripts": {
-      "start": "concurrently \"python server.py\" \"open index.html\""
+        "start": "python server.py & open index.html"
     },
-    "dependencies": {
-      "concurrently": "^7.0.0"
+    "devDependencies": {
+        "concurrently": "^9.1.2",
+        "kill-port": "^2.0.1"
     }
-  }
+}
