@@ -85,6 +85,7 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.3);
       display: none;
       border: 1px solid #444;
+      min-width: 850px;
     }
     .prediction-grid {
       display: grid;
@@ -102,9 +103,9 @@
     .prediction canvas {
       border: 1px solid #444;
       margin-bottom: 5px;
+      background-color: #111;
       width: 400px;
       height: 400px;
-      background-color: #111;
     }
     .prediction div {
       color: #4CAF50;
@@ -119,12 +120,8 @@
         <button id="newGameBtn">New Game</button>
         <button id="nextTurnBtn">Next Turn</button>
         <button id="autoSelectBtn">Auto Select Shots</button>
-        <!-- <button id="actionLogBtn">Toggle Action Log</button> -->
         <button id="togglePathsBtn">Toggle Paths</button>
-        <!-- <button id="autoPlayBtn">Auto Play</button> -->
-        <!-- <button id="generatePredictionsBtn">Generate Predictions</button> -->
         <button id="makePredictionsBtn">Make Predictions</button>
-
       </div>
       <div id="statusMessage"></div>
       <ul id="actionLog"></ul>
@@ -136,12 +133,12 @@
         <div class="prediction">
           <h3>Best Option</h3>
           <canvas id="best-option" width="400" height="400"></canvas>
-          <div id="best-score">Score: 0.0</div>
+          <!--<div id="best-score">Score: 0.0</div> -->
         </div>
         <div class="prediction">
           <h3>Second Best Option</h3>
           <canvas id="second-best" width="400" height="400"></canvas>
-          <div id="second-score">Score: 0.0</div>
+          <!--<div id="second-score">Score: 0.0</div> -->
         </div>
       </div>
     </div>
