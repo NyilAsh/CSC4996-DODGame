@@ -904,96 +904,131 @@ function updateDefenderShotHistory() {
 }
 
 function logHistoryToBoth() {
-  // Helper function to validate and format coordinates
-  const formatCoord = (val, max) => {
-    val = parseInt(val);
-    return (val >= 0 && val < max) ? val : -1;
-  };
+    // Helper function to validate and format coordinates
+    const formatCoord = (val, max) => {
+        val = parseInt(val);
+        return (val >= 0 && val < max) ? val : -1;
+    };
 
-  // Ensure all attackers (A, B, C) have history
-  ['A', 'B', 'C'].forEach(id => {
-    if (!attackerHistory[id]) {
-      attackerHistory[id] = [
-        [-1, -1], [-1, -1], [-1, -1], [-1, -1]
-      ];
+    // Create the data array
+    const csvRow = [
+        formatCoord(attackerHistory['A'][0][1], GRID_SIZE),
+        formatCoord(attackerHistory['A'][0][0], GRID_SIZE),
+        formatCoord(attackerHistory['A'][1][1], GRID_SIZE),
+        formatCoord(attackerHistory['A'][1][0], GRID_SIZE),
+        formatCoord(attackerHistory['A'][2][1], GRID_SIZE),
+        formatCoord(attackerHistory['A'][2][0], GRID_SIZE),
+        
+        formatCoord(attackerHistory['B'][0][1], GRID_SIZE),
+        formatCoord(attackerHistory['B'][0][0], GRID_SIZE),
+        formatCoord(attackerHistory['B'][1][1], GRID_SIZE),
+        formatCoord(attackerHistory['B'][1][0], GRID_SIZE),
+        formatCoord(attackerHistory['B'][2][1], GRID_SIZE),
+        formatCoord(attackerHistory['B'][2][0], GRID_SIZE),
+        
+        formatCoord(attackerHistory['C'][0][1], GRID_SIZE),
+        formatCoord(attackerHistory['C'][0][0], GRID_SIZE),
+        formatCoord(attackerHistory['C'][1][1], GRID_SIZE),
+        formatCoord(attackerHistory['C'][1][0], GRID_SIZE),
+        formatCoord(attackerHistory['C'][2][1], GRID_SIZE),
+        formatCoord(attackerHistory['C'][2][0], GRID_SIZE),
+        
+        formatCoord(defenderShotHistory['A'][0][1], GRID_SIZE),
+        formatCoord(defenderShotHistory['A'][0][0], GRID_SIZE),
+        formatCoord(defenderShotHistory['A'][1][1], GRID_SIZE),
+        formatCoord(defenderShotHistory['A'][1][0], GRID_SIZE),
+        formatCoord(defenderShotHistory['A'][2][1], GRID_SIZE),
+        formatCoord(defenderShotHistory['A'][2][0], GRID_SIZE),
+        
+        formatCoord(defenderShotHistory['B'][0][1], GRID_SIZE),
+        formatCoord(defenderShotHistory['B'][0][0], GRID_SIZE),
+        formatCoord(defenderShotHistory['B'][1][1], GRID_SIZE),
+        formatCoord(defenderShotHistory['B'][1][0], GRID_SIZE),
+        formatCoord(defenderShotHistory['B'][2][1], GRID_SIZE),
+        formatCoord(defenderShotHistory['B'][2][0], GRID_SIZE)
+    ];
+
+    console.log("Sending data to server:", csvRow);
+
+    // Show prediction container
+    const predictionContainer = document.getElementById('prediction-container');
+    if (predictionContainer) {
+        predictionContainer.style.display = 'block';
     }
-  });
 
-  // Ensure both defenders have history
-  ['A', 'B'].forEach(id => {
-    if (!defenderShotHistory[id]) {
-      defenderShotHistory[id] = [
-        [-1, -1], [-1, -1], [-1, -1], [-1, -1]
-      ];
-    }
-  });
-
-  const csvRow = [
-    // CURRENT POSITIONS FIRST (A_Cur, B_cur, C_cur, SA_cur, SB_Cur)
-    formatCoord(attackerHistory['A'][0][1], GRID_SIZE), // A_Cur x
-    formatCoord(attackerHistory['A'][0][0], GRID_SIZE), // A_Cur y
-    formatCoord(attackerHistory['A'][1][1], GRID_SIZE), // AA2 x (prev1)
-    formatCoord(attackerHistory['A'][1][0], GRID_SIZE), // AA2 y (prev1)
-    formatCoord(attackerHistory['A'][2][1], GRID_SIZE), // AA1 x (prev2)
-    formatCoord(attackerHistory['A'][2][0], GRID_SIZE), // AA1 y (prev2)
-    
-    // Attacker B - Current + 2 most recent positions
-    formatCoord(attackerHistory['B'][0][1], GRID_SIZE), // B_Cur x
-    formatCoord(attackerHistory['B'][0][0], GRID_SIZE), // B_Cur y
-    formatCoord(attackerHistory['B'][1][1], GRID_SIZE), // AB2 x (prev1)
-    formatCoord(attackerHistory['B'][1][0], GRID_SIZE), // AB2 y (prev1)
-    formatCoord(attackerHistory['B'][2][1], GRID_SIZE), // AB1 x (prev2)
-    formatCoord(attackerHistory['B'][2][0], GRID_SIZE), // AB1 y (prev2),
-    
-    // Attacker C - Current + 2 most recent positions
-    formatCoord(attackerHistory['C'][0][1], GRID_SIZE), // C_Cur x
-    formatCoord(attackerHistory['C'][0][0], GRID_SIZE), // C_Cur y
-    formatCoord(attackerHistory['C'][1][1], GRID_SIZE), // AC2 x (prev1)
-    formatCoord(attackerHistory['C'][1][0], GRID_SIZE), // AC2 y (prev1)
-    formatCoord(attackerHistory['C'][2][1], GRID_SIZE), // AC1 x (prev2)
-    formatCoord(attackerHistory['C'][2][0], GRID_SIZE), // AC1 y (prev2),
-    
-    // Defender A Shots - Current + 2 most recent
-    formatCoord(defenderShotHistory['A'][0][1], GRID_SIZE), // SA_Cur x
-    formatCoord(defenderShotHistory['A'][0][0], GRID_SIZE), // SA_Cur y
-    formatCoord(defenderShotHistory['A'][1][1], GRID_SIZE), // SA2 x (prev1)
-    formatCoord(defenderShotHistory['A'][1][0], GRID_SIZE), // SA2 y (prev1)
-    formatCoord(defenderShotHistory['A'][2][1], GRID_SIZE), // SA1 x (prev2)
-    formatCoord(defenderShotHistory['A'][2][0], GRID_SIZE), // SA1 y (prev2),
-    
-    // Defender B Shots - Current + 2 most recent
-    formatCoord(defenderShotHistory['B'][0][1], GRID_SIZE), // SB_Cur x
-    formatCoord(defenderShotHistory['B'][0][0], GRID_SIZE), // SB_Cur y
-    formatCoord(defenderShotHistory['B'][1][1], GRID_SIZE), // SB2 x (prev1)
-    formatCoord(defenderShotHistory['B'][1][0], GRID_SIZE), // SB2 y (prev1)
-    formatCoord(defenderShotHistory['B'][2][1], GRID_SIZE), // SB1 x (prev2)
-    formatCoord(defenderShotHistory['B'][2][0], GRID_SIZE)
-  ];
-
-  console.log("Logging positions to server:", csvRow);
-
-  // Send data to servers
-  fetch('http://localhost:5000/log_history', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(csvRow),
-  })
-  .then(response => response.json())
-  .then(data => console.log("CSV logger response:", data))
-  .catch((error) => {
-    console.error('Error logging history to CSV:', error);
-  });
-
-  fetch('http://localhost:5001/log_data', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(csvRow),
-  })
-  .then(response => response.json())
-  .then(data => console.log("Extra processing response:", data))
-  .catch((error) => {
-    console.error("Error sending data to extra processing server:", error);
-  });
+    // Send data to server and handle predictions
+    fetch('http://localhost:5001/log_data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(csvRow),
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Received data from server:", data);
+        
+        if (data.status === 'success' && data.predictions) {
+            // Create predicted game states based on AI predictions
+            const firstPrediction = {
+                attackers: [],
+                defenderShots: { 'A': [], 'B': [] }
+            };
+            
+            const secondPrediction = {
+                attackers: [],
+                defenderShots: { 'A': [], 'B': [] }
+            };
+            
+            // Process first choices
+            if (data.predictions.first_choices) {
+                data.predictions.first_choices.forEach(pred => {
+                    if (pred.entity.startsWith('Attacker')) {
+                        firstPrediction.attackers.push({
+                            id: pred.entity.split(' ')[1],
+                            steppedPath: [[Number(pred.y), Number(pred.x)]],
+                            currentIndex: 0
+                        });
+                        console.log(`Added first choice attacker ${pred.entity} at [${pred.y}, ${pred.x}]`);
+                    } else if (pred.entity.startsWith('Defender')) {
+                        const defenderId = pred.entity.split(' ')[1];
+                        firstPrediction.defenderShots[defenderId].push([Number(pred.y), Number(pred.x)]);
+                        console.log(`Added first choice defender ${defenderId} shot at [${pred.y}, ${pred.x}]`);
+                    }
+                });
+            }
+            
+            // Process second choices
+            if (data.predictions.second_choices) {
+                data.predictions.second_choices.forEach(pred => {
+                    if (pred.entity.startsWith('Attacker')) {
+                        secondPrediction.attackers.push({
+                            id: pred.entity.split(' ')[1],
+                            steppedPath: [[Number(pred.y), Number(pred.x)]],
+                            currentIndex: 0
+                        });
+                        console.log(`Added second choice attacker ${pred.entity} at [${pred.y}, ${pred.x}]`);
+                    } else if (pred.entity.startsWith('Defender')) {
+                        const defenderId = pred.entity.split(' ')[1];
+                        secondPrediction.defenderShots[defenderId].push([Number(pred.y), Number(pred.x)]);
+                        console.log(`Added second choice defender ${defenderId} shot at [${pred.y}, ${pred.x}]`);
+                    }
+                });
+            }
+            
+            console.log("Drawing predictions:", {
+                first: firstPrediction,
+                second: secondPrediction
+            });
+            
+            // Draw predictions
+            drawPredictionCanvas(firstPrediction, 'best-option');
+            drawPredictionCanvas(secondPrediction, 'second-best');
+        } else {
+            console.error("Invalid data received from server:", data);
+        }
+    })
+    .catch((error) => {
+        console.error("Error sending data to server:", error);
+    });
 }
 
 function createSeparator(character) {
@@ -1104,110 +1139,153 @@ function getCurrentDefenders() {
     return defenders;
 }
 
-function drawPredictionCanvas(canvas, board, attackers, defenders, defenderShots, turnOffset = 0) {
-    const ctx = canvas.getContext('2d');
-    const PRED_CELL_SIZE = 36;
+function drawPredictionCanvas(predictedState, canvasId) {
+    console.log(`Drawing predictions on canvas ${canvasId}:`, predictedState);
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+        console.error(`Canvas ${canvasId} not found`);
+        return;
+    }
     
+    // Set explicit dimensions to match main game
+    canvas.width = 750;
+    canvas.height = 750;
+    const ctx = canvas.getContext('2d');
+    
+    // Clear canvas and set background
     ctx.fillStyle = '#111';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= GRID_SIZE; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * PRED_CELL_SIZE + 25, 20);
-        ctx.lineTo(i * PRED_CELL_SIZE + 25, PRED_CELL_SIZE * GRID_SIZE + 20);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(25, i * PRED_CELL_SIZE + 20);
-        ctx.lineTo(PRED_CELL_SIZE * GRID_SIZE + 25, i * PRED_CELL_SIZE + 20);
-        ctx.stroke();
+    // Draw grid
+    ctx.font = "14px Arial";
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "#444";
+    ctx.textAlign = "center";
+    
+    // Draw column numbers (0-9)
+    for (let c = 0; c < GRID_SIZE; c++) {
+        ctx.fillText(c.toString(), c * CELL_SIZE + 25 + CELL_SIZE / 2, 15);
     }
     
-    ctx.fillStyle = '#666';
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'center';
-    for (let i = 0; i < GRID_SIZE; i++) {
-        ctx.fillText(i.toString(), i * PRED_CELL_SIZE + 25 + PRED_CELL_SIZE/2, 15);
-        ctx.textAlign = 'right';
-        ctx.fillText((GRID_SIZE - 1 - i).toString(), 20, i * PRED_CELL_SIZE + 20 + PRED_CELL_SIZE/2);
+    // Draw row numbers (9-0)
+    ctx.textAlign = "right";
+    for (let r = 0; r < GRID_SIZE; r++) {
+        ctx.fillText(
+            (GRID_SIZE - 1 - r).toString(),
+            20,
+            r * CELL_SIZE + 20 + CELL_SIZE / 2 + 5
+        );
     }
     
+    // Draw grid cells
     for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
-            if (typeof board[r][c] === "string") {
+            ctx.strokeStyle = "#444";
+            ctx.strokeRect(
+                c * CELL_SIZE + 25,
+                r * CELL_SIZE + 20,
+                CELL_SIZE,
+                CELL_SIZE
+            );
+        }
+    }
+    
+    // Draw current defenders from the main game board
+    const currentBoard = getCurrentBoard();
+    for (let i = 0; i < GRID_SIZE; i++) {
+        for (let j = 0; j < GRID_SIZE; j++) {
+            if (currentBoard[i][j] === 'A' || currentBoard[i][j] === 'B') {
+                const x = j * CELL_SIZE + 25;
+                const y = (GRID_SIZE - 1 - i) * CELL_SIZE + 20;
+                
                 try {
-                    ctx.drawImage(
-                        defenderImg,
-                        c * PRED_CELL_SIZE + 27,
-                        (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 22,
-                        PRED_CELL_SIZE - 4,
-                        PRED_CELL_SIZE - 4
-                    );
+                    // Draw defender image
+                    ctx.drawImage(defenderImg, x + 5, y + 5, CELL_SIZE - 10, CELL_SIZE - 10);
                     
-                    ctx.fillStyle = "white";
-                    ctx.font = "bold 14px Arial";
-                    ctx.textAlign = "center";
-                    ctx.fillText(
-                        board[r][c],
-                        c * PRED_CELL_SIZE + 25 + PRED_CELL_SIZE/2,
-                        (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 20 + PRED_CELL_SIZE/2 + 5
-                    );
+                    // Draw defender label
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(currentBoard[i][j], x + CELL_SIZE/2, y + CELL_SIZE/2);
                 } catch (e) {
-                    console.error("Error drawing defender in prediction:", e);
+                    console.error("Error drawing defender:", e);
                 }
             }
         }
     }
     
-    Object.entries(defenderShots).forEach(([defender, shots]) => {
-        shots.forEach(shot => {
-            const [r, c] = shot;
-            ctx.fillStyle = defender === "A" ? "rgba(255,0,0,0.3)" : "rgba(0,0,255,0.3)";
-            ctx.fillRect(
-                c * PRED_CELL_SIZE + 25,
-                (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 20,
-                PRED_CELL_SIZE,
-                PRED_CELL_SIZE
-            );
-            
-            ctx.fillStyle = "#FFFFFF";
-            ctx.font = "bold 16px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText(
-                defender,
-                c * PRED_CELL_SIZE + 25 + PRED_CELL_SIZE/2,
-                (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 20 + PRED_CELL_SIZE/2 + 5
-            );
-        });
-    });
-    
-    attackers.forEach(attacker => {
-        let predictedIndex = Math.min(attacker.currentIndex + turnOffset, attacker.steppedPath.length - 1);
-        let [r, c] = attacker.steppedPath[predictedIndex];
-        
-        try {
-            ctx.drawImage(
-                attackerImg,
-                c * PRED_CELL_SIZE + 27,
-                (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 22,
-                PRED_CELL_SIZE - 4,
-                PRED_CELL_SIZE - 4
-            );
-            
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 14px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(
-                attacker.id,
-                c * PRED_CELL_SIZE + 25 + PRED_CELL_SIZE/2,
-                (GRID_SIZE - 1 - r) * PRED_CELL_SIZE + 20 + PRED_CELL_SIZE/2 + 5
-            );
-        } catch (e) {
-            console.error("Error drawing attacker in prediction:", e);
+    // Draw predicted shots - draw A shots first, then B shots
+    if (predictedState.defenderShots) {
+        // First draw defender A shots
+        if (predictedState.defenderShots['A'] && predictedState.defenderShots['A'].length > 0) {
+            predictedState.defenderShots['A'].forEach(shot => {
+                if (shot && shot.length === 2) {
+                    const [row, col] = shot;
+                    const x = col * CELL_SIZE + 25;
+                    const y = (GRID_SIZE - 1 - row) * CELL_SIZE + 20;
+                    
+                    // Fill the entire cell with red
+                    ctx.fillStyle = "rgba(255,0,0,0.3)";
+                    ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+                    
+                    // Draw defender ID
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = 'bold 20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('A', x + CELL_SIZE/2, y + CELL_SIZE/2);
+                }
+            });
         }
-    });
+        
+        // Then draw defender B shots
+        if (predictedState.defenderShots['B'] && predictedState.defenderShots['B'].length > 0) {
+            predictedState.defenderShots['B'].forEach(shot => {
+                if (shot && shot.length === 2) {
+                    const [row, col] = shot;
+                    const x = col * CELL_SIZE + 25;
+                    const y = (GRID_SIZE - 1 - row) * CELL_SIZE + 20;
+                    
+                    // Fill the entire cell with blue
+                    ctx.fillStyle = "rgba(0,0,255,0.3)";
+                    ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+                    
+                    // Draw defender ID
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = 'bold 20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('B', x + CELL_SIZE/2, y + CELL_SIZE/2);
+                }
+            });
+        }
+    }
+    
+    // Draw predicted attackers
+    if (predictedState.attackers) {
+        predictedState.attackers.forEach(attacker => {
+            if (attacker && attacker.steppedPath && attacker.steppedPath.length > 0) {
+                const [row, col] = attacker.steppedPath[attacker.currentIndex];
+                const x = col * CELL_SIZE + 25;
+                const y = (GRID_SIZE - 1 - row) * CELL_SIZE + 20;
+                
+                try {
+                    // Draw attacker image
+                    ctx.drawImage(attackerImg, x + 5, y + 5, CELL_SIZE - 10, CELL_SIZE - 10);
+                    
+                    // Draw attacker ID
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(attacker.id, x + CELL_SIZE/2, y + CELL_SIZE/2);
+                } catch (e) {
+                    console.error("Error drawing attacker:", e);
+                }
+            }
+        });
+    }
 }
 
 function generatePossibleShots() {
@@ -1305,12 +1383,8 @@ function generatePredictions() {
         // Draw best prediction
         if (scoredPredictions.length > 0) {
             drawPredictionCanvas(
-                bestCanvas,
-                board,
-                attackers,
-                getCurrentDefenders(),
                 scoredPredictions[0].shots,
-                0
+                'best-option'
             );
 
             const bestScore = document.getElementById('best-score');
@@ -1322,12 +1396,8 @@ function generatePredictions() {
         // Draw second best prediction
         if (scoredPredictions.length > 1) {
             drawPredictionCanvas(
-                secondBestCanvas,
-                board,
-                attackers,
-                getCurrentDefenders(),
                 scoredPredictions[1].shots,
-                0
+                'second-best'
             );
 
             const secondScore = document.getElementById('second-score');
@@ -1342,6 +1412,11 @@ function generatePredictions() {
         console.error('Error generating predictions:', error);
         statusMessage.textContent = "Error generating predictions";
     }
+}
+
+function getCurrentBoard() {
+    // Return a copy of the current board state
+    return board.map(row => [...row]);
 }
 
 
